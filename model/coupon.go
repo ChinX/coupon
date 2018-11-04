@@ -1,13 +1,13 @@
-package dao
+package model
 
 import "time"
 
 type Coupon struct {
 	ID         int64     `xorm:"id notnull pk autoincr"`
-	UserID     int64     `xorm:"user_id notnull unique(UQE_USER_ACTIVITY)"`
+	UserID     string    `xorm:"user_id varchar(40) notnull unique(UQE_USER_ACTIVITY)"`
 	ActivityID int64     `xorm:"activity_id notnull unique(UQE_USER_ACTIVITY)"`
-	Created    time.Time `xorm:"created notnull"`
-	Deleted    time.Time `xorm:"deleted"`
+	CreatedAt  time.Time `xorm:"created"`
+	DeletedAt  time.Time `xorm:"deleted"`
 }
 
 func (c *Coupon) TableName() string {

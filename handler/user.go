@@ -22,19 +22,25 @@ type authCode struct {
 func UserLogin(w http.ResponseWriter, r *http.Request) {
 	auth := &authCode{}
 	err := iorw.ReadJSON(r.Body, auth)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("请求参数错误"))
-		return
-	}
+	//if err != nil {
+	//	log.Println(err)
+	//	w.WriteHeader(http.StatusBadRequest)
+	//	w.Write([]byte("请求参数错误"))
+	//	return
+	//}
+	//
+	//wxSession, err := service.NewAuth(auth.Code).AuthSession()
+	//if err != nil {
+	//	log.Println(err)
+	//	w.WriteHeader(http.StatusInternalServerError)
+	//	w.Write([]byte("从微信获取登录信息失败"))
+	//	return
+	//}
 
-	wxSession, err := service.NewAuth(auth.Code).AuthSession()
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("从微信获取登录信息失败"))
-		return
+	//mock
+	wxSession := service.WXSession{
+		OpenID:"ovmPr4lmSxoP0km3pKaq-oCoDJ6U",
+		SessionKey: "ovmPr4lmSxoP0km3pKaq-oCoDJ6U",
 	}
 
 	store, err := session.Start(context.Background(), w, r)
@@ -161,12 +167,11 @@ func signature(key string) string {
 }
 
 func CheckSession(w http.ResponseWriter, r *http.Request) {
-	_, err := session.Start(context.Background(), w, r)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("连接超时，请重新登录"))
-		return
-	}
-	session.Refresh(context.Background(), w, r)
+	//_, err := session.Start(context.Background(), w, r)
+	//if err != nil {
+	//	log.Println(err)
+	//	w.WriteHeader(http.StatusUnauthorized)
+	//	w.Write([]byte("连接超时，请重新登录"))
+	//	return
+	//}
 }

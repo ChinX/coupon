@@ -21,3 +21,17 @@ func (t *Task) TableName() string {
 func init() {
 	register(&Task{})
 }
+
+func (t *Task) List(from, count int) (int64, []*Task) {
+	list := make([]*Task, 0)
+	n, _ := engine.Count(t)
+	if n == 0 {
+		return 0, list
+	}
+	if from == 0 {
+		engine.Desc("id").Limit(count, 0).Find(&list)
+	} else {
+		engine.Where("id < ?", from).Desc("id").Limit(count, 0).Find(&list)
+	}
+	return n, list
+}

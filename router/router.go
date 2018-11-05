@@ -3,18 +3,18 @@ package router
 import (
 	"net/http"
 
-	"github.com/go-session/redis"
-	"github.com/go-session/session"
 	"github.com/chinx/cobweb"
 	"github.com/chinx/coupon/handler"
+	"github.com/go-session/session"
 )
 
 func InitRouter() (http.Handler, error) {
 	session.InitManager(
-		session.SetStore(redis.NewRedisStore(&redis.Options{
-			Addr: "127.0.0.1:6379",
-			DB:   15,
-		})),
+		//session.SetStore(redis.NewRedisStore(&redis.Options{
+		//	Addr: "127.0.0.1:6379",
+		//	DB:   15,
+		//})),
+		session.SetStore(session.NewMemoryStore()),
 	)
 
 	mux := cobweb.New()

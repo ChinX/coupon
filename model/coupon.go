@@ -17,3 +17,17 @@ func (c *Coupon) TableName() string {
 func init() {
 	register(&Coupon{})
 }
+
+func (c *Coupon) List(from, count int) (int64, interface{}) {
+	list := make([]*Activity, 0)
+	n, _ := engine.Count(c)
+	if n == 0 {
+		return 0, list
+	}
+	if from == 0 {
+		engine.Desc("id").Limit(count, 0).Find(&list)
+	} else {
+		engine.Where("id < ?", from).Desc("id").Limit(count, 0).Find(&list)
+	}
+	return n, list
+}

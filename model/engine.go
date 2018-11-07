@@ -49,3 +49,7 @@ func isExist(name string) bool {
 	}
 	return false
 }
+
+func NewSession() *xorm.Session {
+	return engine.NewSession()
+}

@@ -26,7 +26,7 @@ func init() {
 	register(&Activity{})
 }
 
-func (a *Activity) List(from, count int) (int64, []*Activity) {
+func (a *Activity) List(from, count int) (int64, interface{}) {
 	list := make([]*Activity, 0)
 	n, _ := engine.Count(a)
 	if n == 0 {

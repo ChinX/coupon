@@ -47,8 +47,8 @@ func InitRouter() (http.Handler, error) {
 
 		mux.Group("/coupons", func() {
 			mux.Get("/", handler.ListCoupons)
-			mux.Get("/:coupon", handler.GetCoupon)
-			mux.Put("/:coupon", handler.ModifyCoupon)
+			mux.Get("/:coupon_id", handler.GetCoupon)
+			mux.Put("/:coupon_id", handler.ModifyCoupon)
 		})
 	}, handler.CheckSession)
 

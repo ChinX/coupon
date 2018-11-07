@@ -1,69 +1,110 @@
 package handler
 
 import (
-	"context"
 	"github.com/chinx/coupon/model"
-	"github.com/chinx/mohist/iorw"
-	"github.com/go-session/session"
-	"log"
 	"net/http"
 )
 
+type bargainMsg struct {
+	Message string `json:"message"`
+	TaskID  int64  `json:"task_id"`
+}
+
 func CreateBargain(w http.ResponseWriter, r *http.Request) {
-	t := &task{}
-	err := iorw.ReadJSON(r.Body, t)
+	userID, err := readUserID(w, r)
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("请求参数错误"))
+		reply(w, http.StatusUnauthorized, "登录状态已失效，请重新登录")
 		return
 	}
-	store, err := session.Start(context.Background(), w, r)
+
+	msg := &bargainMsg{}
+	err = readBody(r.Body, msg)
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("服务器开了会儿小差，请稍后尝试"))
-		return
-	}
-	store.SessionID()
-	userID, ok := store.Get("openid")
-	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("请求参数错误"))
+		reply(w, http.StatusInternalServerError, "服务器开了会儿小差，请稍后尝试")
 		return
 	}
 
-	activity := &model.Activity{ID: t.ActivityID}
-	if ok := model.Get(activity); !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("activity id is wrong"))
+	task := &model.Task{ID: msg.TaskID}
+	if ok := model.Get(task); !ok {
+		reply(w, http.StatusBadRequest, "指定的任务不存在")
 		return
 	}
 
-	mTask := &model.Task{
-		UserID: userID.(string),
-		ActivityID: t.ActivityID,
+	bargain := &model.Bargain{
+		UserID: userID,
+		TaskID: msg.TaskID,
 	}
 
-	if ok := model.Get(mTask); ok {
-		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte("不能重复领取任务"))
+	if ok := model.Get(bargain); ok {
+		reply(w, http.StatusConflict, "不能重复砍刀")
 		return
 	}
 
-	mTask.Message= t.Message
-	mTask.Price = activity.Price
+	count := discount(task.Price, 5)
+	task.Progress += count
 
-	if ok := model.Insert(mTask); !ok{
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("activity id is wrong"))
+	if task.Progress >= float64(task.Price){
+		task.Progress = float64(task.Price)
+	}
+	bargain.Message = msg.Message
+	bargain.Discount = count
+
+	session := model.NewSession()
+	defer session.Close()
+
+	err = session.Begin()
+	_, err = session.Insert(bargain)
+	if err != nil {
+		session.Rollback()
+		reply(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
+	_, err = session.Where("id = ?", msg.TaskID).Update(task)
+	if err != nil {
+		session.Rollback()
+		reply(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if task.Progress == float64(task.Price){
+		coupon := &model.Coupon{
+			UserID: task.UserID,
+			ActivityID: task.ActivityID,
+		}
+		_, err = session.Insert(coupon)
+		if err != nil {
+			session.Rollback()
+			reply(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		//_, err = session.Where("id = ?", task.ActivityID).Update(Activity)
+		//if err != nil {
+		//	session.Rollback()
+		//	return
+		//}
+
+	}
+
+	err = session.Commit()
+	if err != nil {
+		reply(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	reply(w, http.StatusCreated, bargain)
 }
 
 func ListBargains(w http.ResponseWriter, r *http.Request) {
+	byteData, err := pagedQuery(r, &model.Bargain{})
+	if err != nil {
+		reply(w, http.StatusInternalServerError, "服务器开了会儿小差，请稍后尝试")
+		return
+	}
+	reply(w, http.StatusOK, byteData)
+}
 
+func discount(total int64, share int64) float64 {
+	return 1
 }

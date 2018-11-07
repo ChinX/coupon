@@ -2,142 +2,114 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/chinx/cobweb"
-	"github.com/chinx/coupon/model"
-	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/chinx/mohist/iorw"
-	"github.com/go-session/session"
+	"github.com/chinx/cobweb"
+	"github.com/chinx/coupon/model"
 )
 
-type task struct {
+type taskMsg struct {
 	Message    string `json:"message"`
 	ActivityID int64  `json:"activity_id"`
 }
 
 func CreateTask(w http.ResponseWriter, r *http.Request) {
-	t := &task{}
-	err := iorw.ReadJSON(r.Body, t)
+	userID, err := readUserID(w, r)
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("请求参数错误"))
-		return
-	}
-	store, err := session.Start(context.Background(), w, r)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("服务器开了会儿小差，请稍后尝试"))
-		return
-	}
-	store.SessionID()
-	userID, ok := store.Get("openid")
-	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("请求参数错误"))
+		reply(w, http.StatusUnauthorized, "登录状态已失效，请重新登录")
 		return
 	}
 
-	activity := &model.Activity{ID: t.ActivityID}
+	msg := &taskMsg{}
+	err = readBody(r.Body, msg)
+	if err != nil {
+		reply(w, http.StatusInternalServerError, "服务器开了会儿小差，请稍后尝试")
+		return
+	}
+
+	activity := &model.Activity{ID: msg.ActivityID}
 	if ok := model.Get(activity); !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("activity id is wrong"))
+		reply(w, http.StatusBadRequest, "指定的活动不存在")
 		return
 	}
 
-	mTask := &model.Task{
-		UserID: userID.(string),
-		ActivityID: t.ActivityID,
+	task := &model.Task{
+		UserID:     userID,
+		ActivityID: msg.ActivityID,
 	}
 
-	if ok := model.Get(mTask); ok {
-		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte("不能重复领取任务"))
+	if ok := model.Get(task); ok {
+		reply(w, http.StatusConflict, "不能重复领取任务")
 		return
 	}
 
-	mTask.Message= t.Message
-	mTask.Price = activity.Price
+	count := discount(task.Price, 5)
+	task.Message = msg.Message
+	task.Price = activity.Price
+	task.Progress += count
 
-	if ok := model.Insert(mTask); !ok{
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("activity id is wrong"))
+	session := model.NewSession()
+	defer session.Close()
+
+	err = session.Begin()
+	_, err = session.Insert(task)
+	if err != nil {
+		session.Rollback()
+		reply(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
+	bargain := &model.Bargain{
+		UserID:   userID,
+		TaskID:   task.ID,
+		Message:  "要对自己感情真，一刀砍到绝对深",
+		Discount: count,
+	}
+	_, err = session.Insert(bargain)
+	if err != nil {
+		session.Rollback()
+		reply(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = session.Commit()
+	if err != nil {
+		reply(w, http.StatusInternalServerError, err)
+		return
+	}
+	reply(w, http.StatusCreated, task)
 }
 
 func ListTasks(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	from, err := strconv.Atoi(r.Form.Get("from"))
-	if err != nil || from < 0 {
-		from = 0
-	}
-
-	count, err := strconv.Atoi(r.Form.Get("count"))
-	if err != nil || count < 30 {
-		count = 30
-	}
-
-	mTask := &model.Task{}
-	n, list := mTask.List(from, count)
-	result := &listResult{
-		Total: n,
-		List:  list,
-	}
-
-	byteData, err := json.Marshal(result)
+	byteData, err := pagedQuery(r, &model.Task{})
 	if err != nil {
-		if err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("正拿肇事程序员祭天，稍后片刻"))
-			return
-		}
+		reply(w, http.StatusInternalServerError, "服务器开了会儿小差，请稍后尝试")
+		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(byteData)
+	reply(w, http.StatusOK, byteData)
 }
 
 func GetTask(w http.ResponseWriter, r *http.Request) {
-	params:=r.Context().Value(context.Background())
+	params := r.Context().Value(context.Background())
 	if params == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("activity id is not found"))
+		reply(w, http.StatusBadRequest, "请求参数错误")
 		return
 	}
 
 	id, err := strconv.Atoi(params.(cobweb.Params).Get("task_id"))
 	if err != nil || id == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("task id is wrong"))
+		reply(w, http.StatusBadRequest, "请求参数错误")
 		return
 	}
 
-	mTask := &model.Task{ID: int64(id)}
-	if ok := model.Get(mTask); !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("activity id is wrong"))
+	task := &model.Task{ID: int64(id)}
+	if ok := model.Get(task); !ok {
+		reply(w, http.StatusBadRequest, "指定的任务ID不存在")
 		return
 	}
 
-	byteData, err := json.Marshal(mTask)
-	if err != nil {
-		if err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("正拿肇事程序员祭天，稍后片刻"))
-			return
-		}
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(byteData)
+	reply(w, http.StatusOK, task)
 }
 
 func DeleteTask(w http.ResponseWriter, r *http.Request) {

@@ -5,15 +5,11 @@ import "time"
 type Activity struct {
 	ID           int64     `json:"id" xorm:"id notnull pk autoincr"`
 	Title        string    `json:"title" xorm:"title varchar(255) notnull"`
-	Price        int64     `json:"price" xorm:"price notnull default 0"`
-	Limit        int64     `json:"limit" xorm:"limit notnull default 0"`
-	Count        int64     `json:"count" xorm:"count notnull default 0"`
-	City         string    `json:"city" xorm:"city notnull varchar(40)"`
-	Province     string    `json:"province" xorm:"province notnull varchar(40)"`
+	Country      string    `json:"country" xorm:"country varchar(40)"`
+	Province     string    `json:"province" xorm:"province varchar(40)"`
+	City         string    `json:"city" xorm:"city varchar(40)"`
 	DetailURL    string    `json:"detail_url" xorm:"detail_url varchar(255)"`
 	PublicityIMG string    `json:"publicity_img" xorm:"publicity_img varchar(255)"`
-	DailyLimit   int64     `json:"daily_limit" xorm:"daily_limit notnull default 0"`
-	DailyCount   int64     `json:"daily_count" xorm:"daily_count notnull default 0"`
 	CreatedAt    time.Time `json:"created" xorm:"created"`
 	DeletedAt    time.Time `json:"-" xorm:"deleted"`
 }
@@ -26,7 +22,29 @@ func init() {
 	register(&Activity{})
 }
 
-func (a *Activity) List(from, count int) (int64, interface{}) {
+func (a *Activity) CreateActivity(detail *ActiveDetail) error {
+	session := NewSession()
+	defer session.Close()
+
+	err := session.Begin()
+
+	_, err = session.Insert(a)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	detail.ID = a.ID
+	_, err = session.Insert(detail)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	return session.Commit()
+}
+
+func (a *Activity) List(from, count int) (int64, []*Activity) {
 	list := make([]*Activity, 0)
 	n, _ := engine.Count(a)
 	if n == 0 {

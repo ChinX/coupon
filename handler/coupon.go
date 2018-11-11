@@ -1,45 +1,117 @@
 package handler
 
 import (
-	"context"
-	"github.com/chinx/cobweb"
 	"net/http"
 	"strconv"
 
-	"github.com/chinx/coupon/model"
+	"github.com/chinx/coupon/module"
 )
 
-func ListCoupons(w http.ResponseWriter, r *http.Request) {
-	byteData, err := pagedQuery(r, &model.Coupon{})
-	if err != nil {
-		reply(w, http.StatusInternalServerError, "服务器开了会儿小差，请稍后尝试")
+func CreateCoupon(w http.ResponseWriter, r *http.Request) {
+	result := checkUser(w, r)
+	if result.Status != module.StatusLogin {
 		return
 	}
-	reply(w, http.StatusOK, byteData)
+
+	activityID, err := strconv.Atoi(urlParam(r, "activity_id"))
+	if err != nil || activityID == 0 {
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, nil)
+		return
+	}
+
+	coupon, err := module.CreateCoupon(result.UserID, int64(activityID))
+	if err != nil {
+		result.Message = err.Error()
+		reply(w, http.StatusInternalServerError, result, err)
+		return
+	}
+
+	reply(w, http.StatusCreated, coupon, nil)
 }
 
-func ModifyCoupon(w http.ResponseWriter, r *http.Request) {
+func ActiveCoupon(w http.ResponseWriter, r *http.Request) {
+	result := checkUser(w, r)
+	if result.Status != module.StatusLogin {
+		return
+	}
 
+	activityID, err := strconv.Atoi(urlParam(r, "activity_id"))
+	if err != nil || activityID == 0 {
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, nil)
+		return
+	}
+
+	coupon, err := module.GetCouponByActivity(result.UserID, int64(activityID))
+	if err != nil {
+		result.Message = err.Error()
+		reply(w, http.StatusInternalServerError, result, err)
+		return
+	}
+
+	reply(w, http.StatusOK, coupon, nil)
+
+}
+
+func ListCoupons(w http.ResponseWriter, r *http.Request) {
+	result := checkUser(w, r)
+	if result.Status != module.StatusLogin {
+		return
+	}
+
+	params := pageParams(r)
+	byteData, err := pagedResult(module.ListCoupons(result.UserID, params.From, params.Count))
+	if err != nil {
+		result.Message = "获取门票列表失败"
+		reply(w, http.StatusInternalServerError, result, err)
+		return
+	}
+	reply(w, http.StatusOK, byteData, nil)
 }
 
 func GetCoupon(w http.ResponseWriter, r *http.Request) {
-	params := r.Context().Value(context.Background())
-	if params == nil {
-		reply(w, http.StatusBadRequest, "请求参数错误")
+	result := checkUser(w, r)
+	if result.Status != module.StatusLogin {
 		return
 	}
 
-	id, err := strconv.Atoi(params.(cobweb.Params).Get("coupon_id"))
-	if err != nil || id == 0 {
-		reply(w, http.StatusBadRequest, "请求参数错误")
+	couponID, err := strconv.Atoi(urlParam(r, "coupon_id"))
+	if err != nil || couponID == 0 {
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, nil)
 		return
 	}
 
-	coupon := &model.Coupon{ID: int64(id)}
-	if ok := model.Get(coupon); !ok {
-		reply(w, http.StatusBadRequest, "指定的优惠券不存在")
+	coupon, err := module.GetCoupon(int64(couponID))
+	if err != nil {
+		result.Message = err.Error()
+		reply(w, http.StatusBadRequest, result, nil)
 		return
 	}
 
-	reply(w, http.StatusOK, coupon)
+	reply(w, http.StatusOK, coupon, nil)
+}
+
+func DeleteCoupon(w http.ResponseWriter, r *http.Request) {
+	result := checkUser(w, r)
+	if result.Status != module.StatusLogin {
+		return
+	}
+
+	couponID, err := strconv.Atoi(urlParam(r, "coupon_id"))
+	if err != nil || couponID == 0 {
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, nil)
+		return
+	}
+
+	coupon, err := module.DeleteCoupon(int64(couponID))
+	if err != nil {
+		result.Message = err.Error()
+		reply(w, http.StatusBadRequest, result, nil)
+		return
+	}
+
+	reply(w, http.StatusCreated, coupon, nil)
 }

@@ -1,117 +1,133 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 
-	"github.com/chinx/cobweb"
-	"github.com/chinx/coupon/model"
+	"github.com/chinx/coupon/api"
+	"github.com/chinx/coupon/module"
 )
 
-type taskMsg struct {
-	Message    string `json:"message"`
-	ActivityID int64  `json:"activity_id"`
-}
-
 func CreateTask(w http.ResponseWriter, r *http.Request) {
-	userID, err := readUserID(w, r)
-	if err != nil {
-		reply(w, http.StatusUnauthorized, "登录状态已失效，请重新登录")
+	result := checkUser(w, r)
+	if result.Status != module.StatusLogin {
 		return
 	}
 
-	msg := &taskMsg{}
+	activityID, err := strconv.Atoi(urlParam(r, "activity_id"))
+	if err != nil || activityID == 0 {
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, nil)
+		return
+	}
+
+	msg := &api.Message{}
 	err = readBody(r.Body, msg)
 	if err != nil {
-		reply(w, http.StatusInternalServerError, "服务器开了会儿小差，请稍后尝试")
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, err)
 		return
 	}
 
-	activity := &model.Activity{ID: msg.ActivityID}
-	if ok := model.Get(activity); !ok {
-		reply(w, http.StatusBadRequest, "指定的活动不存在")
-		return
-	}
-
-	task := &model.Task{
-		UserID:     userID,
-		ActivityID: msg.ActivityID,
-	}
-
-	if ok := model.Get(task); ok {
-		reply(w, http.StatusConflict, "不能重复领取任务")
-		return
-	}
-
-	count := discount(task.Price, 5)
-	task.Message = msg.Message
-	task.Price = activity.Price
-	task.Progress += count
-
-	session := model.NewSession()
-	defer session.Close()
-
-	err = session.Begin()
-	_, err = session.Insert(task)
+	task, err := module.CreateTask(result.UserID, int64(activityID), msg.Message)
 	if err != nil {
-		session.Rollback()
-		reply(w, http.StatusInternalServerError, err)
+		result.Message = err.Error()
+		reply(w, http.StatusInternalServerError, result, err)
 		return
 	}
 
-	bargain := &model.Bargain{
-		UserID:   userID,
-		TaskID:   task.ID,
-		Message:  "要对自己感情真，一刀砍到绝对深",
-		Discount: count,
-	}
-	_, err = session.Insert(bargain)
+	taskBargain, err := module.CreateBargain(result.UserID, task.ID, msg.Message)
 	if err != nil {
-		session.Rollback()
-		reply(w, http.StatusInternalServerError, err)
+		result.Message = "砍刀失败"
+		reply(w, http.StatusBadRequest, result, err)
 		return
 	}
 
-	err = session.Commit()
-	if err != nil {
-		reply(w, http.StatusInternalServerError, err)
+	reply(w, http.StatusCreated, taskBargain, nil)
+}
+
+func ActiveTask(w http.ResponseWriter, r *http.Request) {
+	result := checkUser(w, r)
+	if result.Status != module.StatusLogin {
 		return
 	}
-	reply(w, http.StatusCreated, task)
+
+	activityID, err := strconv.Atoi(urlParam(r, "activity_id"))
+	if err != nil || activityID == 0 {
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, nil)
+		return
+	}
+
+	task, err := module.GetTaskByUserActivity(result.UserID, int64(activityID))
+	if err != nil {
+		result.Message = err.Error()
+		reply(w, http.StatusBadRequest, result, err)
+		return
+	}
+
+	reply(w, http.StatusOK, task, nil)
+
 }
 
 func ListTasks(w http.ResponseWriter, r *http.Request) {
-	byteData, err := pagedQuery(r, &model.Task{})
-	if err != nil {
-		reply(w, http.StatusInternalServerError, "服务器开了会儿小差，请稍后尝试")
+	result := checkUser(w, r)
+	if result.Status != module.StatusLogin {
 		return
 	}
-	reply(w, http.StatusOK, byteData)
+
+	params := pageParams(r)
+	byteData, err := pagedResult(module.ListTasks(result.UserID, params.From, params.Count))
+	if err != nil {
+		result.Message = "获取任务列表失败"
+		reply(w, http.StatusInternalServerError, result, err)
+		return
+	}
+	reply(w, http.StatusOK, byteData, nil)
 }
 
 func GetTask(w http.ResponseWriter, r *http.Request) {
-	params := r.Context().Value(context.Background())
-	if params == nil {
-		reply(w, http.StatusBadRequest, "请求参数错误")
+	result := checkUser(w, r)
+	if result.Status != module.StatusLogin {
 		return
 	}
 
-	id, err := strconv.Atoi(params.(cobweb.Params).Get("task_id"))
-	if err != nil || id == 0 {
-		reply(w, http.StatusBadRequest, "请求参数错误")
+	taskID, err := strconv.Atoi(urlParam(r, "task_id"))
+	if err != nil || taskID == 0 {
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, nil)
 		return
 	}
 
-	task := &model.Task{ID: int64(id)}
-	if ok := model.Get(task); !ok {
-		reply(w, http.StatusBadRequest, "指定的任务ID不存在")
+	task, err := module.GetTask(int64(taskID))
+	if err != nil {
+		result.Message = err.Error()
+		reply(w, http.StatusBadRequest, result, err)
 		return
 	}
 
-	reply(w, http.StatusOK, task)
+	reply(w, http.StatusOK, task, nil)
 }
 
 func DeleteTask(w http.ResponseWriter, r *http.Request) {
+	result := checkUser(w, r)
+	if result.Status != module.StatusLogin {
+		return
+	}
 
+	taskID, err := strconv.Atoi(urlParam(r, "task_id"))
+	if err != nil || taskID == 0 {
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, nil)
+		return
+	}
+
+	task, err := module.DeleteTask(int64(taskID))
+	if err != nil {
+		result.Message = err.Error()
+		reply(w, http.StatusBadRequest, result, err)
+		return
+	}
+
+	reply(w, http.StatusCreated, task, nil)
 }

@@ -1,54 +1,91 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 
-	"github.com/chinx/cobweb"
-
-	"github.com/chinx/coupon/model"
+	"github.com/chinx/coupon/module"
 )
 
-func CreateActivity(w http.ResponseWriter, r *http.Request) {
-
-}
-
 func ListActivities(w http.ResponseWriter, r *http.Request) {
-	byteData, err := pagedQuery(r, &model.Activity{})
-	if err != nil {
-		reply(w, http.StatusInternalServerError, "服务器开了会儿小差，请稍后尝试")
+	result := checkUser(w, r)
+	if result.Status != module.StatusLogin {
 		return
 	}
-	reply(w, http.StatusOK, byteData)
-}
 
-func ModifyActivity(w http.ResponseWriter, r *http.Request) {
-
+	params := pageParams(r)
+	byteData, err := pagedResult(module.ListActivities(params.From, params.Count))
+	if err != nil {
+		result.Message = "获取活动列表失败"
+		reply(w, http.StatusInternalServerError, result, err)
+		return
+	}
+	reply(w, http.StatusOK, byteData, nil)
 }
 
 func GetActivity(w http.ResponseWriter, r *http.Request) {
-	params := r.Context().Value(context.Background())
-	if params == nil {
-		reply(w, http.StatusBadRequest, "请求参数错误")
+	result := checkUser(w, r)
+	if result.Status != module.StatusLogin {
 		return
 	}
 
-	id, err := strconv.Atoi(params.(cobweb.Params).Get("activity_id"))
+	activityID, err := strconv.Atoi(urlParam(r, "activity_id"))
+	if err != nil || activityID == 0 {
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, nil)
+		return
+	}
+
+	activity, err := module.GetActivity(int64(activityID))
+	if err != nil {
+		result.Message = "指定的活动不存在"
+		reply(w, http.StatusBadRequest, result, nil)
+		return
+	}
+
+	reply(w, http.StatusOK, activity, nil)
+}
+
+func CreateActivity(w http.ResponseWriter, r *http.Request) {
+	result := checkAdmin(w, r)
+	if result.Status != module.StatusLogin {
+		return
+	}
+}
+
+func ModifyActivity(w http.ResponseWriter, r *http.Request) {
+	result := checkAdmin(w, r)
+	if result.Status != module.StatusLogin {
+		return
+	}
+
+	id, err := strconv.Atoi(urlParam(r, "activity_id"))
 	if err != nil || id == 0 {
-		reply(w, http.StatusBadRequest, "请求参数错误")
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, nil)
 		return
 	}
-
-	activity := &model.Activity{ID: int64(id)}
-	if ok := model.Get(activity); !ok {
-		reply(w, http.StatusBadRequest, "指定的活动不存在")
-		return
-	}
-
-	reply(w, http.StatusOK, activity)
+	reply(w, http.StatusOK, "ok", nil)
 }
 
 func DeleteActivity(w http.ResponseWriter, r *http.Request) {
+	result := checkAdmin(w, r)
+	if result.Status != module.StatusLogin {
+		return
+	}
 
+	activityID, err := strconv.Atoi(urlParam(r, "activity_id"))
+	if err != nil || activityID == 0 {
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, nil)
+		return
+	}
+
+	activity, err := module.DeleteActivity(int64(activityID))
+	if err != nil {
+		result.Message = "指定的活动不存在"
+		reply(w, http.StatusBadRequest, result, nil)
+		return
+	}
+	reply(w, http.StatusOK, activity, nil)
 }

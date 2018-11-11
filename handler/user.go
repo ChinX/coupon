@@ -1,177 +1,125 @@
 package handler
 
 import (
-	"context"
-	"crypto/sha1"
-	"encoding/json"
-	"fmt"
-	"io"
-	"log"
 	"net/http"
 
-	"github.com/chinx/coupon/model"
-	"github.com/chinx/coupon/service"
-	"github.com/chinx/mohist/iorw"
-	"github.com/go-session/session"
+	"github.com/chinx/coupon/api"
+	"github.com/chinx/coupon/module"
 )
 
-type authCode struct {
-	Code string `json:"code"`
-}
-
 func UserLogin(w http.ResponseWriter, r *http.Request) {
-	auth := &authCode{}
-	err := iorw.ReadJSON(r.Body, auth)
-	//if err != nil {
-	//	log.Println(err)
-	//	w.WriteHeader(http.StatusBadRequest)
-	//	w.Write([]byte("请求参数错误"))
-	//	return
-	//}
-	//
-	//wxSession, err := service.NewAuth(auth.Code).AuthSession()
-	//if err != nil {
-	//	log.Println(err)
-	//	w.WriteHeader(http.StatusInternalServerError)
-	//	w.Write([]byte("从微信获取登录信息失败"))
-	//	return
-	//}
-
-	//mock
-	wxSession := service.WXSession{
-		OpenID:"ovmPr4lmSxoP0km3pKaq-oCoDJ6U",
-		SessionKey: "ovmPr4lmSxoP0km3pKaq-oCoDJ6U",
-	}
-
-	store, err := session.Start(context.Background(), w, r)
+	auth := &api.UserLogin{}
+	result := &api.CommonResult{Status: module.StatusLogout}
+	err := readBody(r.Body, auth)
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("服务器开了会儿小差，请稍后尝试"))
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, err)
 		return
 	}
 
-	store.Set("openid", wxSession.OpenID)
-	store.Set("session_key", wxSession.SessionKey)
-	err = store.Save()
+	wxData, err := module.NewAuth(auth.Code).AuthSession()
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("正拿肇事程序员祭天，稍后片刻"))
+		result.Message = "从微信获取登录信息失败"
+		reply(w, http.StatusBadRequest, result, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
-}
+	userData, err := module.NewSession(w, r)
+	if err != nil {
+		result.Message = "创建登录信息失败"
+		reply(w, http.StatusUnauthorized, result, err)
+		return
+	}
 
-type binding struct {
-	Signature     string `json:"signature"`
-	RawData       string `json:"rawData"`
-	EncryptedData string `json:"encryptedData"`
-	IV            string `json:"iv"`
+	result.Status = userData.SetUserSession(wxData)
+	if result.Status == module.StatusLogout {
+		result.Message = "登录失败，请稍后尝试"
+		reply(w, http.StatusUnauthorized, result, nil)
+		return
+	}
+
+	reply(w, http.StatusCreated, result, nil)
 }
 
 func UserBinding(w http.ResponseWriter, r *http.Request) {
-	store, err := session.Start(context.Background(), w, r)
+	result := &api.CommonResult{Status: module.StatusLogout}
+	userData, err := module.NewSession(w, r)
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("连接超时，请重新登录"))
+		result.Message = "获取登录信息失败"
+		reply(w, http.StatusUnauthorized, result, err)
 		return
 	}
 
-	b := &binding{}
-	err = iorw.ReadJSON(r.Body, b)
+	bind := &module.Binding{}
+	err = readBody(r.Body, bind)
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("请求参数错误"))
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, err)
 		return
 	}
 
-	key, ok := store.Get("session_key")
-	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("请求参数错误"))
-		return
-	}
-
-	sign := signature(b.RawData + key.(string))
-	if b.Signature != sign {
-		log.Println(sign)
-		log.Println(b.Signature)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("请求参数错误"))
-		return
-	}
-
-	user := &model.User{}
-	err = json.Unmarshal([]byte(b.RawData), user)
+	status, err := userData.ValidateSignature(bind.Signature, bind.RawData)
+	result.Status = status
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("请求参数错误"))
+		result.Message = err.Error()
+		reply(w, http.StatusBadRequest, result, err)
 		return
 	}
-	openid, _ := store.Get("openid")
-	condition := &model.User{ID: openid.(string)}
-	user.ID = condition.ID
 
-	has := model.Get(condition)
-	if !has {
-		ok = model.Insert(user)
-		if !ok {
-			log.Println("insert")
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("正拿肇事程序员祭天，稍后片刻"))
-			return
-		}
-	} else {
-		if condition.AvatarURL != user.AvatarURL ||
-			condition.City != user.City ||
-			condition.Province != user.Province ||
-			condition.Country != user.Country ||
-			condition.Gender != user.Gender ||
-			condition.Language != user.Language ||
-			condition.Nickname != user.Nickname {
-			ok = model.Update(user)
-			if !ok {
-				log.Println("Update")
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("正拿肇事程序员祭天，稍后片刻"))
-				return
-			}
-		}
+	err = userData.Binding(bind)
+	if err != nil {
+		result.Message = err.Error()
+		reply(w, http.StatusBadRequest, result, err)
+		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
+	result.Status = module.StatusLogin
+	reply(w, http.StatusCreated, result, nil)
 }
 
 func UserLogout(w http.ResponseWriter, r *http.Request) {
-	err := session.Destroy(context.Background(), w, r)
+	result := &api.CommonResult{Status: module.StatusLogout}
+	userData, err := module.NewSession(w, r)
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("未登录"))
+		result.Message = "未登录"
+		reply(w, http.StatusUnauthorized, result, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
+	result.Status = userData.Destroy()
+	reply(w, http.StatusCreated, result, err)
 }
 
-func signature(key string) string {
-	h := sha1.New()
-	io.WriteString(h, key)
-	return fmt.Sprintf("%x", h.Sum(nil))
+func checkUser(w http.ResponseWriter, r *http.Request) *api.CommonResult {
+	return checkLogin(w, r, module.PermissionUser)
 }
 
-func CheckSession(w http.ResponseWriter, r *http.Request) {
-	//_, err := session.Start(context.Background(), w, r)
-	//if err != nil {
-	//	log.Println(err)
-	//	w.WriteHeader(http.StatusUnauthorized)
-	//	w.Write([]byte("连接超时，请重新登录"))
-	//	return
-	//}
+func AdminLogin(w http.ResponseWriter, r *http.Request) {
+	admin := &module.AdminLogin{}
+	result := &api.CommonResult{Status: module.StatusLogout}
+	err := readBody(r.Body, admin)
+	if err != nil || admin.User == "" || admin.Passwd == "" {
+		result.Message = "账号或密码不能为空"
+		reply(w, http.StatusBadRequest, result, nil)
+		return
+	}
+
+	userData, err := module.NewSession(w, r)
+	if err != nil {
+		result.Message = "创建登录信息失败"
+		reply(w, http.StatusUnauthorized, result, err)
+		return
+	}
+
+	result.Status = userData.SetAdminSession(admin)
+	if result.Status != module.StatusLogin {
+		result.Message = "登录失败，请检测账户信息，稍后尝试"
+		reply(w, http.StatusUnauthorized, result, nil)
+		return
+	}
+
+	reply(w, http.StatusCreated, result, nil)
+}
+
+func checkAdmin(w http.ResponseWriter, r *http.Request) *api.CommonResult {
+	return checkLogin(w, r, module.PermissionAdmin)
 }

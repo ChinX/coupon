@@ -3,10 +3,12 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"github.com/go-session/session"
+	"github.com/chinx/cobweb"
+	"github.com/chinx/coupon/api"
+	"github.com/chinx/coupon/module"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -16,23 +18,27 @@ type pagination struct {
 	List  interface{} `json:"list"`
 }
 
-type pager interface {
-	List(from, counter int) (int64, interface{})
+func pageParams(r *http.Request) *api.PageParams {
+	r.ParseForm()
+	params := &api.PageParams{}
+	params.From, _ = strconv.Atoi(r.Form.Get("from"))
+	if params.From < 0 {
+		params.From = 0
+	}
+
+	params.Count, _ = strconv.Atoi(r.Form.Get("count"))
+	if params.Count < 0 || params.Count > 100 {
+		params.Count = 30
+	}
+	return params
 }
 
-func pagedQuery(r *http.Request, p pager) ([]byte, error) {
-	r.ParseForm()
-	from, err := strconv.Atoi(r.Form.Get("from"))
-	if err != nil || from < 0 {
-		from = 0
+func urlParam(r *http.Request, key string) string {
+	params := r.Context().Value(context.Background())
+	if params == nil {
+		return ""
 	}
-
-	count, err := strconv.Atoi(r.Form.Get("count"))
-	if err != nil || count < 30 {
-		count = 30
-	}
-
-	return pagedResult(p.List(from, count))
+	return params.(cobweb.Params).Get(key)
 }
 
 func pagedResult(total int64, list interface{}) ([]byte, error) {
@@ -54,16 +60,56 @@ func readBody(body io.Reader, v interface{}) error {
 	return nil
 }
 
-func readUserID(w http.ResponseWriter, r *http.Request) (string,error)  {
-	store, err := session.Start(context.Background(), w, r)
+func reply(w http.ResponseWriter, status int, data interface{}, err error) {
+	var result []byte
+	switch t := data.(type) {
+	case []byte:
+		result = t
+	case string:
+		result = []byte(t)
+	case error:
+		result = []byte(t.Error())
+	default:
+		byteData, err := json.Marshal(data)
+		if err != nil {
+			status = http.StatusInternalServerError
+			result = []byte(err.Error())
+		} else {
+			result = byteData
+		}
+	}
+	if status >= http.StatusBadRequest {
+		if err != nil {
+			log.Println(err)
+		} else {
+			log.Println(status, string(result))
+		}
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	w.Write(result)
+}
+
+func checkLogin(w http.ResponseWriter, r *http.Request, permission int) *api.CommonResult {
+	result := &api.CommonResult{Status: module.StatusLogout}
+	userData, err := module.NewSession(w, r)
 	if err != nil {
-		return "", err
+		result.Message = "获取登录信息失败"
+		reply(w, http.StatusUnauthorized, result, err)
+		return result
 	}
 
-	userID, ok := store.Get("openid")
-	if !ok {
-		return "", errors.New("获取用户信息失败")
+	if !userData.IsPermission(permission) {
+		result.Message = "无权限"
+		reply(w, http.StatusForbidden, result, err)
+		return result
 	}
 
-	return userID.(string), nil
+	result.UserID, result.Status = userData.UserID()
+	if result.Status == module.StatusLogout {
+		result.Message = "登录状态已失效，请重新登录"
+		reply(w, http.StatusUnauthorized, result, nil)
+		return result
+	}
+	return result
 }

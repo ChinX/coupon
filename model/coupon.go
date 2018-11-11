@@ -3,11 +3,11 @@ package model
 import "time"
 
 type Coupon struct {
-	ID         int64     `xorm:"id notnull pk autoincr"`
-	UserID     string    `xorm:"user_id varchar(40) notnull unique(UQE_USER_ACTIVITY)"`
-	ActivityID int64     `xorm:"activity_id notnull unique(UQE_USER_ACTIVITY)"`
-	CreatedAt  time.Time `xorm:"created"`
-	DeletedAt  time.Time `xorm:"deleted"`
+	ID         int64     `json:"id" xorm:"id notnull pk autoincr"`
+	UserID     string    `json:"user_id" xorm:"user_id varchar(40) notnull unique(UQE_USER_ACTIVITY)"`
+	ActivityID int64     `json:"activity_id" xorm:"activity_id notnull unique(UQE_USER_ACTIVITY)"`
+	CreatedAt  time.Time `json:"created_at" xorm:"created"`
+	DeletedAt  time.Time `json:"-" xorm:"deleted"`
 }
 
 func (c *Coupon) TableName() string {

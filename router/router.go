@@ -5,19 +5,16 @@ import (
 
 	"github.com/chinx/cobweb"
 	"github.com/chinx/coupon/handler"
-	"github.com/go-session/session"
 )
 
 func InitRouter() (http.Handler, error) {
-	session.InitManager(
-		//session.SetStore(redis.NewRedisStore(&redis.Options{
-		//	Addr: "127.0.0.1:6379",
-		//	DB:   15,
-		//})),
-		session.SetStore(session.NewMemoryStore()),
-	)
-
 	mux := cobweb.New()
+	mux.Get("/", handler.HomeHandler)
+	mux.Group("/v1/admin", func() {
+		mux.Post("/login", handler.AdminLogin)
+		mux.Post("/logout", handler.UserLogout)
+	})
+
 	mux.Group("/v1/user", func() {
 		mux.Post("/login", handler.UserLogin)
 		mux.Post("/binding", handler.UserBinding)
@@ -29,28 +26,31 @@ func InitRouter() (http.Handler, error) {
 			mux.Post("/", handler.CreateActivity)
 			mux.Get("/", handler.ListActivities)
 			mux.Patch("/:activity_id", handler.ModifyActivity)
-			mux.Get("/:activity_id", handler.GetActivity)
 			mux.Delete("/:activity_id", handler.DeleteActivity)
+			mux.Get("/:activity_id", handler.GetActivity)
+
+			mux.Post("/:activity_id/tasks", handler.CreateTask)
+			mux.Get("/:activity_id/tasks", handler.ActiveTask)
+
+			mux.Post("/:activity_id/coupons", handler.CreateCoupon)
+			mux.Get("/:activity_id/coupons", handler.ActiveCoupon)
 		})
 
 		mux.Group("/tasks", func() {
-			mux.Post("/", handler.CreateTask)
 			mux.Get("/", handler.ListTasks)
 			mux.Get("/:task_id", handler.GetTask)
 			mux.Delete("/:task_id", handler.DeleteTask)
-		})
 
-		mux.Group("/bargains", func() {
-			mux.Post("/", handler.CreateBargain)
-			mux.Get("/", handler.ListBargains)
+			mux.Post("/:task_id/bargains", handler.CreateBargain)
+			mux.Get("/:task_id/bargains", handler.ListBargains)
 		})
 
 		mux.Group("/coupons", func() {
 			mux.Get("/", handler.ListCoupons)
 			mux.Get("/:coupon_id", handler.GetCoupon)
-			mux.Put("/:coupon_id", handler.ModifyCoupon)
+			mux.Delete("/:coupon_id", handler.DeleteCoupon)
 		})
-	}, handler.CheckSession)
+	})
 
 	return mux.Build()
 }

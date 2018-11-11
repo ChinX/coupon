@@ -1,4 +1,4 @@
-package service
+package module
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	appID     = "wx3f73a5186ad1702a"
-	appSecret = "d11cf3f8b7ea0ee37100be01431e289a"
+	AppID     = "wx3f73a5186ad1702a"
+	AppSecret = "d11cf3f8b7ea0ee37100be01431e289a"
 	authURL   = "https://api.weixin.qq.com/sns/jscode2session"
 )
 
@@ -22,10 +22,17 @@ type WXSession struct {
 	OpenID     string `json:"openid"`
 }
 
+type Binding struct {
+	Signature     string `json:"signature"`
+	RawData       string `json:"rawData"`
+	EncryptedData string `json:"encryptedData"`
+	IV            string `json:"iv"`
+}
+
 func NewAuth(code string) *WXAuth {
 	args := url.Values{}
-	args.Set("appid", appID)
-	args.Set("secret", appSecret)
+	args.Set("appid", AppID)
+	args.Set("secret", AppSecret)
 	args.Set("js_code", code)
 	args.Set("grant_type", "authorization_code")
 	return &WXAuth{

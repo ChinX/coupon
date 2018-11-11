@@ -97,7 +97,7 @@ func AdminLogin(w http.ResponseWriter, r *http.Request) {
 	admin := &module.AdminLogin{}
 	result := &api.CommonResult{Status: module.StatusLogout}
 	err := readBody(r.Body, admin)
-	if err != nil || admin.User == "" || admin.Passwd == "" {
+	if err != nil || admin.User == "" || admin.Password == "" {
 		result.Message = "账号或密码不能为空"
 		reply(w, http.StatusBadRequest, result, nil)
 		return

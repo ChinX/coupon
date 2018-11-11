@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/chinx/coupon/handler"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,11 +20,13 @@ import (
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	//opt, err := setting.LoadConfigFile("./cert/coupon_private.key", "./conf/windup.toml")
-	opt, err := setting.LoadConfigFile("./cert/coupon_private.key", "./conf/windup.conf")
+	opt, err := setting.LoadConfigFile("./cert/coupon_private.key", "./conf/windup.toml")
+	//opt, err := setting.LoadConfigFile("./cert/coupon_private.key", "./conf/windup.conf")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	handler.StaticDir = opt.StaticDir
 	err = model.InitORM("mysql",
 		fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8",
 			opt.Mysql.User, opt.Mysql.Password,
@@ -40,11 +43,10 @@ func main() {
 			Password: opt.Redis.Password,
 		})),
 	)
-
 	module.AppID = opt.Weixin.AppID
 	module.AppSecret = opt.Weixin.AppSecret
 
-	handler, err := router.InitRouter()
+	serveHandler, err := router.InitRouter()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -77,8 +79,8 @@ func main() {
 		Certificates: []tls.Certificate{certificate},
 	}
 	srv := &http.Server{
-		Addr:         "0.0.0.0:" + strconv.Itoa(opt.Port),
-		Handler:      handler,
+		Addr:         "0.0.0.0:" + strconv.Itoa(opt.HttpsPort),
+		Handler:      serveHandler,
 		TLSConfig:    cfg,
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
 	}

@@ -52,5 +52,10 @@ func InitRouter() (http.Handler, error) {
 		})
 	})
 
+	mux.Group("/editor", func() {
+		mux.Get("/", handler.EditHandler)
+		mux.Get("/*filename", handler.StaticHandler)
+	})
+
 	return mux.Build()
 }

@@ -9,12 +9,14 @@ import (
 )
 
 type Options struct {
-	Port    int     `toml:"port"`
-	CrtFile string  `toml:"crtfile"`
-	KeyFile string  `toml:"keyfile"`
-	Mysql   *Mysql  `toml:"mysql"`
-	Redis   *Redis  `toml:"redis"`
-	Weixin  *Weixin `toml:"weixin"`
+	HttpPort  int     `toml:"httpport"`
+	HttpsPort int     `toml:"httpsport"`
+	CrtFile   string  `toml:"crtfile"`
+	KeyFile   string  `toml:"keyfile"`
+	StaticDir string  `json:"staticdir"`
+	Mysql     *Mysql  `toml:"mysql"`
+	Redis     *Redis  `toml:"redis"`
+	Weixin    *Weixin `toml:"weixin"`
 }
 
 type Mysql struct {

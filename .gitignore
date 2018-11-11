@@ -8,6 +8,11 @@
 *.dylib
 .idea
 *.iml
+coupon*
+cert
+conf
+crypts
+tools
 
 # Test binary, build with `go test -c`
 *.test

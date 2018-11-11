@@ -3,13 +3,13 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/chinx/coupon/module"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/chinx/coupon/model"
+	"github.com/chinx/coupon/module"
 	"github.com/chinx/coupon/router"
 	"github.com/chinx/coupon/setting"
 	"github.com/go-session/redis"

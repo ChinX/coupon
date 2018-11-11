@@ -2,7 +2,7 @@ package model
 
 type Admin struct {
 	User   string `xorm:"user varchar(40) notnull pk"`
-	Passwd string `xorm:"passwd varchar(64) notnull"`
+	Password string `xorm:"password varchar(128) notnull"`
 	Salt   string `xorm:"salt varchar(8) notnull"`
 }
 

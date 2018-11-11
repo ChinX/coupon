@@ -4,9 +4,9 @@ import (
 	"context"
 	"crypto/sha1"
 	"crypto/sha512"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -28,8 +28,8 @@ const (
 )
 
 type AdminLogin struct {
-	User   string `json:"user"`
-	Passwd string `json:"passwd"`
+	User     string `json:"user"`
+	Password string `json:"password"`
 }
 
 type Session struct {
@@ -131,8 +131,8 @@ func (s *Session) SetAdminSession(data *AdminLogin) int {
 	}
 
 	sha := sha512.New()
-	sha.Write([]byte(admin.User + admin.Salt))
-	if fmt.Sprintf("%x", sha.Sum(nil)) != admin.Passwd {
+	sha.Write([]byte(data.Password + admin.Salt))
+	if hex.EncodeToString(sha.Sum(nil)) != admin.Password {
 		return s.Destroy()
 	}
 
@@ -160,7 +160,7 @@ func (s *Session) UserID() (string, int) {
 }
 
 func signature(key string) string {
-	h := sha1.New()
-	io.WriteString(h, key)
-	return fmt.Sprintf("%x", h.Sum(nil))
+	sha := sha1.New()
+	io.WriteString(sha, key)
+	return hex.EncodeToString(sha.Sum(nil))
 }

@@ -51,8 +51,8 @@ func CreateCoupon(userID string, activityID int64)(*model.Coupon, error) {
 }
 
 func ListCoupons(userID string, from, count int) (int64, interface{}) {
-	bargain := &model.Coupon{UserID: userID}
-	return bargain.List(from, count)
+	coupon := &model.Coupon{UserID: userID}
+	return coupon.List(from, count)
 }
 
 

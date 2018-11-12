@@ -19,7 +19,7 @@ func init() {
 }
 
 func (c *Coupon) List(from, count int) (int64, interface{}) {
-	list := make([]*Activity, 0)
+	list := make([]*Coupon, 0)
 	n, _ := engine.Count(c)
 	if n == 0 {
 		return 0, list

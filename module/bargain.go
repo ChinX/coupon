@@ -40,7 +40,7 @@ func CreateBargain(userID string, taskID int64, msg string) (*TaskBargain, error
 		task.Progress += 1
 	}
 
-	count := bargainPrice(task.Price-task.Final, task.Discount, task.Quantity, task.Progress)
+	count := bargainPrice(task.Final, task.Discount, task.Quantity, task.Progress)
 	task.Discount += count
 	bargain.Discount = count
 

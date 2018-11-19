@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/chinx/coupon/handler"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -26,7 +25,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	handler.StaticDir = opt.StaticDir
 	err = model.InitORM("mysql",
 		fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8",
 			opt.Mysql.User, opt.Mysql.Password,

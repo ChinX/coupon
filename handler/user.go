@@ -9,7 +9,7 @@ import (
 
 func UserLogin(w http.ResponseWriter, r *http.Request) {
 	auth := &api.UserLogin{}
-	result := &api.CommonResult{Status: module.StatusLogout}
+	result := &api.ReplyResult{Status: module.StatusLogout}
 	err := readBody(r.Body, auth)
 	if err != nil {
 		result.Message = "请求参数错误"
@@ -38,11 +38,18 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if result.Status == module.StatusLogin{
+		user, ok := module.GetUserInfo(result.UserID)
+		if ok {
+			result.Data = user
+		}
+	}
+
 	reply(w, http.StatusCreated, result, nil)
 }
 
 func UserBinding(w http.ResponseWriter, r *http.Request) {
-	result := &api.CommonResult{Status: module.StatusLogout}
+	result := &api.ReplyResult{Status: module.StatusLogout}
 	userData, err := module.NewSession(w, r)
 	if err != nil {
 		result.Message = "获取登录信息失败"
@@ -73,53 +80,15 @@ func UserBinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	result.Data, _ = module.GetUserInfo(result.UserID)
 	result.Status = module.StatusLogin
 	reply(w, http.StatusCreated, result, nil)
 }
 
-func UserLogout(w http.ResponseWriter, r *http.Request) {
-	result := &api.CommonResult{Status: module.StatusLogout}
-	userData, err := module.NewSession(w, r)
-	if err != nil {
-		result.Message = "未登录"
-		reply(w, http.StatusUnauthorized, result, err)
-		return
-	}
-	result.Status = userData.Destroy()
-	reply(w, http.StatusCreated, result, err)
-}
-
-func checkUser(w http.ResponseWriter, r *http.Request) *api.CommonResult {
+func checkUser(w http.ResponseWriter, r *http.Request) *api.ReplyResult {
 	return checkLogin(w, r, module.PermissionUser)
 }
 
-func AdminLogin(w http.ResponseWriter, r *http.Request) {
-	admin := &module.AdminLogin{}
-	result := &api.CommonResult{Status: module.StatusLogout}
-	err := readBody(r.Body, admin)
-	if err != nil || admin.User == "" || admin.Password == "" {
-		result.Message = "账号或密码不能为空"
-		reply(w, http.StatusBadRequest, result, nil)
-		return
-	}
-
-	userData, err := module.NewSession(w, r)
-	if err != nil {
-		result.Message = "创建登录信息失败"
-		reply(w, http.StatusUnauthorized, result, err)
-		return
-	}
-
-	result.Status = userData.SetAdminSession(admin)
-	if result.Status != module.StatusLogin {
-		result.Message = "登录失败，请检测账户信息，稍后尝试"
-		reply(w, http.StatusUnauthorized, result, nil)
-		return
-	}
-
-	reply(w, http.StatusCreated, result, nil)
-}
-
-func checkAdmin(w http.ResponseWriter, r *http.Request) *api.CommonResult {
+func checkAdmin(w http.ResponseWriter, r *http.Request) *api.ReplyResult {
 	return checkLogin(w, r, module.PermissionAdmin)
 }

@@ -82,6 +82,8 @@ func reply(w http.ResponseWriter, status int, data interface{}, err error) {
 		if err != nil {
 			log.Println(err)
 		} else {
+
+
 			log.Println(status, string(result))
 		}
 	}
@@ -90,8 +92,8 @@ func reply(w http.ResponseWriter, status int, data interface{}, err error) {
 	w.Write(result)
 }
 
-func checkLogin(w http.ResponseWriter, r *http.Request, permission int) *api.CommonResult {
-	result := &api.CommonResult{Status: module.StatusLogout}
+func checkLogin(w http.ResponseWriter, r *http.Request, permission int) *api.ReplyResult {
+	result := &api.ReplyResult{Status: module.StatusLogout}
 	userData, err := module.NewSession(w, r)
 	if err != nil {
 		result.Message = "获取登录信息失败"

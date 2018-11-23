@@ -31,6 +31,28 @@ func ListActivities(from, count int) map[string]interface{} {
 	}
 }
 
+func ListBargains(taskID int64, from, count int) interface{} {
+	bargain := &model.Bargain{TaskID: taskID}
+	total, list := bargain.List(from, count)
+	userMap := make(map[string]*model.User)
+
+	for key := range list {
+		user, ok := userMap[list[key].UserID]
+		if !ok {
+			user = &model.User{ID: list[key].UserID}
+			model.Get(user)
+			userMap[list[key].UserID] = user
+		}
+		list[key].DiscountNum = float64(list[key].Discount) / float64(Cardinal)
+		list[key].Nickname = user.Nickname
+		list[key].AvatarURL = user.AvatarURL
+	}
+	return map[string]interface{}{
+		"total": total,
+		"list":  list,
+	}
+}
+
 func UserTask(selfID string, userID string, activityID int64) (map[string]interface{}, error) {
 	activity := &model.Activity{}
 	if !model.Get(activity) {
@@ -38,7 +60,7 @@ func UserTask(selfID string, userID string, activityID int64) (map[string]interf
 	}
 
 	task := &model.Task{UserID: userID, ActivityID: activityID}
-	list := make([]*model.Bargain, 0, 10)
+	var selfBargain *model.Bargain
 	if !model.Get(task) {
 		if selfID == userID {
 			task.Message = "这里有一个好玩的地方，大家帮我们拿门票啊"
@@ -75,39 +97,36 @@ func UserTask(selfID string, userID string, activityID int64) (map[string]interf
 			if err != nil {
 				return nil, err
 			}
-			list = append(list, bargain)
 
 			task.ShowDialog = 1
+			selfBargain = bargain
 		} else {
 			return nil, errors.New("指定任务不存在")
 		}
 	} else {
-		model.Find(&list)
-	}
-	userMap := make(map[string]*model.User)
-	for key := range list {
-		user, ok := userMap[list[key].UserID]
-		if !ok {
-			user = &model.User{ID: list[key].UserID}
-			model.Get(user)
-			userMap[list[key].UserID] = user
+		bargain := &model.Bargain{
+			UserID: selfID,
+			TaskID: task.ID,
 		}
-		list[key].DiscountNum = float64(list[key].Discount) / float64(Cardinal)
-		list[key].Nickname = user.Nickname
-		list[key].AvatarURL = user.AvatarURL
-
-		if list[key].UserID == selfID {
+		if model.Get(bargain) {
 			task.Bargained = 1
 		}
 	}
 
+	userMap := make(map[string]*model.User)
+	user := &model.User{ID: task.UserID}
+	model.Get(user)
+	userMap[task.UserID] = user
+	task.DiscountNum = float64(task.Discount) / float64(Cardinal)
+	task.Nickname = user.Nickname
+	task.AvatarURL = user.AvatarURL
 	task.Started = task.CouponStarted.Format(TimeFormat)
 	task.Ended = task.CouponEnded.Format(TimeFormat)
 
 	return map[string]interface{}{
 		"activity": activity,
 		"task":     task,
-		"bargains": list,
+		"bargain":  selfBargain,
 	}, nil
 }
 

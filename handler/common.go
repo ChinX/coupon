@@ -22,8 +22,8 @@ func pageParams(r *http.Request) *api.PageParams {
 	r.ParseForm()
 	params := &api.PageParams{}
 	params.From, _ = strconv.Atoi(r.Form.Get("from"))
-	if params.From < 0 {
-		params.From = 0
+	if params.From < 1 {
+		params.From = 1
 	}
 
 	params.Count, _ = strconv.Atoi(r.Form.Get("count"))

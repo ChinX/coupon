@@ -48,6 +48,24 @@ func UserTask(w http.ResponseWriter, r *http.Request) {
 	reply(w, http.StatusOK, result, err)
 }
 
+func ListBargain(w http.ResponseWriter, r *http.Request) {
+	result := checkUser(w, r)
+	if result.Status != module.StatusLogin {
+		return
+	}
+
+	taskID, err := strconv.Atoi(urlParam(r, "task_id"))
+	if err != nil || taskID == 0 {
+		result.Message = "请求参数错误"
+		reply(w, http.StatusBadRequest, result, nil)
+		return
+	}
+
+	params := pageParams(r)
+	result.Data = module.ListBargains(int64(taskID), params.From, params.Count)
+	reply(w, http.StatusOK, result, nil)
+}
+
 func CreateBargain(w http.ResponseWriter, r *http.Request) {
 	result := checkUser(w, r)
 	if result.Status != module.StatusLogin {

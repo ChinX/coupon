@@ -59,6 +59,8 @@ type Activity struct {
 	Province       string    `json:"province" xorm:"province varchar(40)"`
 	City           string    `json:"city" xorm:"city varchar(40)"`
 	DetailURL      string    `json:"detail_url" xorm:"detail_url varchar(255)"`
+	AvatarURL      string    `json:"avatar_url" xorm:"avatar_url varchar(255)"`
+	Description    string    `json:"description" xorm:"description varchar(255)"`
 	PublicityIMG   string    `json:"publicity_img" xorm:"publicity_img varchar(255)"`
 	CreatedAt      time.Time `json:"-" xorm:"created"`
 	DeletedAt      time.Time `json:"-" xorm:"deleted"`

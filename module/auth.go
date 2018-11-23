@@ -2,9 +2,10 @@ package module
 
 import (
 	"fmt"
-	"github.com/chinx/mohist/iorw"
 	"net/http"
 	"net/url"
+
+	"github.com/chinx/mohist/iorw"
 )
 
 var (

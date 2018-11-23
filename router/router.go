@@ -20,6 +20,10 @@ func InitRouter() (http.Handler, error) {
 		mux.Post("/task/:task_id/bargains", handler.CreateBargain)
 		mux.Get("/task/:task_id/bargains", handler.ListBargain)
 		mux.Post("/task/:task_id/cash", handler.CreateCash)
+
+		mux.Group("/source", func() {
+			mux.Get("/*filename", handler.StaticHandler)
+		})
 	})
 	return mux.Build()
 }

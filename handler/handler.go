@@ -112,3 +112,9 @@ func CreateCash(w http.ResponseWriter, r *http.Request) {
 	result.Data = task
 	reply(w, http.StatusCreated, task, nil)
 }
+
+var StaticDir = "./static"
+func StaticHandler(w http.ResponseWriter, r *http.Request) {
+	r.URL.Path = urlParam(r, "filename")
+	http.FileServer(http.Dir(StaticDir)).ServeHTTP(w, r)
+}

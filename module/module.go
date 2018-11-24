@@ -24,6 +24,14 @@ func ListActivities(from, count int) map[string]interface{} {
 	total, list := activity.List(from, count)
 	account := &model.OfficialAccount{}
 	model.Get(account)
+	account.AvatarURL = urlFormat(account.AvatarURL)
+	account.QRCode = urlFormat(account.QRCode)
+
+	for i := range list {
+		list[i].DetailURL = urlFormat(list[i].DetailURL)
+		list[i].PublicityIMG = urlFormat(list[i].PublicityIMG)
+		list[i].AvatarURL = urlFormat(list[i].AvatarURL)
+	}
 	return map[string]interface{}{
 		"total":            total,
 		"list":             list,
@@ -58,6 +66,10 @@ func UserTask(selfID string, userID string, activityID int64) (map[string]interf
 	if !model.Get(activity) {
 		return nil, errors.New("指定任务不存在")
 	}
+
+	activity.DetailURL = urlFormat(activity.DetailURL)
+	activity.PublicityIMG = urlFormat(activity.PublicityIMG)
+	activity.AvatarURL = urlFormat(activity.AvatarURL)
 
 	task := &model.Task{UserID: userID, ActivityID: activityID}
 	var selfBargain *model.Bargain

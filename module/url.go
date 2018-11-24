@@ -2,7 +2,7 @@ package module
 
 import "net/url"
 
-var HostName = "https://piao.windup.com"
+var HostName = "https://piao.windup.cn"
 
 func urlFormat(path string) string {
 	rawURL, err := url.Parse(path)

@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/chinx/coupon/model"
+	"github.com/chinx/coupon/handler"
 	"github.com/chinx/coupon/module"
+
+	"github.com/chinx/coupon/model"
 	"github.com/chinx/coupon/router"
 	"github.com/chinx/coupon/setting"
 	"github.com/go-session/redis"
@@ -20,7 +22,6 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	opt, err := setting.LoadConfigFile("./cert/coupon_private.key", "./conf/windup.toml")
-	//opt, err := setting.LoadConfigFile("./cert/coupon_private.key", "./conf/windup.conf")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -34,6 +35,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	handler.StaticDir = opt.StaticDir
 	session.InitManager(
 		session.SetStore(redis.NewRedisStore(&redis.Options{
 			Addr:     fmt.Sprintf("%s:%d", opt.Redis.Server, opt.Redis.Port),

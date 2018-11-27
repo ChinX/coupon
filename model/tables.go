@@ -58,6 +58,7 @@ type Activity struct {
 	Country        string    `json:"country" xorm:"country varchar(40)"`
 	Province       string    `json:"province" xorm:"province varchar(40)"`
 	City           string    `json:"city" xorm:"city varchar(40)"`
+	Address        string    `json:"address" xorm:"address varchar(255)"`
 	DetailURL      string    `json:"detail_url" xorm:"detail_url varchar(255)"`
 	AvatarURL      string    `json:"avatar_url" xorm:"avatar_url varchar(255)"`
 	Description    string    `json:"description" xorm:"description varchar(255)"`

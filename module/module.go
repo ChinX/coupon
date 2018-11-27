@@ -19,7 +19,7 @@ func GetUserInfo(userID string) (*model.User, bool) {
 	return user, model.Get(user)
 }
 
-func ListActivities(from, count int) map[string]interface{} {
+func ListActivities(userID string, from, count int) map[string]interface{} {
 	activity := &model.Activity{}
 	total, list := activity.List(from, count)
 	account := &model.OfficialAccount{}
@@ -32,10 +32,21 @@ func ListActivities(from, count int) map[string]interface{} {
 		list[i].PublicityIMG = urlFormat(list[i].PublicityIMG)
 		list[i].AvatarURL = urlFormat(list[i].AvatarURL)
 	}
+
+
+	task := &model.Task{
+		UserID: userID,
+	}
+
+	if userID != ""{
+		task = task.Last()
+	}
+
 	return map[string]interface{}{
 		"total":            total,
 		"list":             list,
 		"official_account": account,
+		"activity_id":      task.ActivityID,
 	}
 }
 
@@ -175,7 +186,7 @@ func CreateBargain(userID string, taskID int64) (map[string]interface{}, error) 
 	defer session.Close()
 
 	err := session.Begin()
-	_, err = session.Update(task)
+	_, err = session.ID(taskID).Update(task)
 	if err != nil {
 		session.Rollback()
 		return nil, err
@@ -215,7 +226,7 @@ func CreateCash(userID string, taskID int64) (*model.Task, error) {
 	}
 
 	task.Status = model.TaskDone
-	if ok := model.Get(task); !ok {
+	if ok := model.Update(taskID, task); !ok {
 		return nil, errors.New("兑票失败")
 	}
 	return task, nil

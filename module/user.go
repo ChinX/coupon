@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/chinx/coupon/model"
@@ -99,7 +100,7 @@ func (s *Session) Binding(data *Binding) error {
 			condition.Gender != user.Gender ||
 			condition.Language != user.Language ||
 			condition.Nickname != user.Nickname {
-			ok := model.Update(user)
+			ok := model.Update(user.ID, user)
 			if !ok {
 				return errors.New("更新用户信息失败")
 			}
@@ -157,6 +158,15 @@ func (s *Session) UserID() (string, int) {
 	}
 
 	return userID.(string), StatusLogin
+}
+
+func (s *Session) ShowALL() {
+	log.Println(idKey)
+	log.Println(s.store.Get(idKey))
+	log.Println(sessionKey)
+	log.Println(s.store.Get(sessionKey))
+	log.Println(permissionKey)
+	log.Println(s.store.Get(permissionKey))
 }
 
 func signature(key string) string {

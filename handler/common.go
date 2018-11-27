@@ -30,6 +30,8 @@ func pageParams(r *http.Request) *api.PageParams {
 	if params.Count < 0 || params.Count > 100 {
 		params.Count = 30
 	}
+
+	log.Println("pageParams", *params)
 	return params
 }
 
@@ -38,6 +40,7 @@ func urlParam(r *http.Request, key string) string {
 	if params == nil {
 		return ""
 	}
+	log.Println("urlParam", params)
 	return params.(cobweb.Params).Get(key)
 }
 
@@ -53,6 +56,8 @@ func readBody(body io.Reader, v interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	log.Println(string(byt))
 	err = json.Unmarshal(byt, v)
 	if err != nil {
 		return err
@@ -78,6 +83,8 @@ func reply(w http.ResponseWriter, status int, data interface{}, err error) {
 			result = byteData
 		}
 	}
+
+	log.Println(string(result))
 	if status >= http.StatusBadRequest {
 		if err != nil {
 			log.Println(err)
@@ -96,11 +103,14 @@ func checkLogin(w http.ResponseWriter, r *http.Request, permission int) *api.Rep
 	result := &api.ReplyResult{Status: module.StatusLogout}
 	userData, err := module.NewSession(w, r)
 	if err != nil {
+		log.Println("checkLogin", err)
 		result.Message = "获取登录信息失败"
 		reply(w, http.StatusUnauthorized, result, err)
 		return result
 	}
 
+	log.Println("checkLogin")
+	userData.ShowALL()
 	if !userData.IsPermission(permission) {
 		result.Message = "无权限"
 		reply(w, http.StatusForbidden, result, err)

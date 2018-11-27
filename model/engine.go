@@ -65,8 +65,8 @@ func Insert(tb interface{}) bool {
 	return true
 }
 
-func Update(tb interface{}) bool {
-	n, err := engine.Update(tb)
+func Update(id interface{}, tb interface{}) bool {
+	n, err := engine.ID(id).Update(tb)
 	if err != nil || n == 0 {
 		return false
 	}

@@ -11,7 +11,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/chinx/coupon/model"
+	"github.com/chinx/coupon/dao/mysql"
+
+	"github.com/chinx/coupon/dao"
+
 	"github.com/go-session/session"
 )
 
@@ -77,33 +80,24 @@ func (s *Session) ValidateSignature(sign string, raw string) (int, error) {
 }
 
 func (s *Session) Binding(data *Binding) error {
-	user := &model.User{}
+	user := &dao.User{}
 	err := json.Unmarshal([]byte(data.RawData), user)
 	if err != nil {
 		return err
 	}
 	openid, _ := s.store.Get(idKey)
-	condition := &model.User{ID: openid.(string)}
-	user.ID = condition.ID
+	user.ID = openid.(string)
 
-	has := model.Get(condition)
+	has := mysql.Exist(user, "id=?", user.ID)
 	if !has {
-		ok := model.Insert(user)
-		if !ok {
+		err := mysql.Insert(user)
+		if err != nil {
 			return errors.New("绑定用户信息失败")
 		}
 	} else {
-		if condition.AvatarURL != user.AvatarURL ||
-			condition.City != user.City ||
-			condition.Province != user.Province ||
-			condition.Country != user.Country ||
-			condition.Gender != user.Gender ||
-			condition.Language != user.Language ||
-			condition.Nickname != user.Nickname {
-			ok := model.Update(user.ID, user)
-			if !ok {
-				return errors.New("更新用户信息失败")
-			}
+		err := mysql.Update(user, "id=?", user.ID)
+		if err != nil || err != mysql.NoRecords {
+			return errors.New("更新用户信息失败")
 		}
 	}
 	return nil
@@ -118,16 +112,15 @@ func (s *Session) SetUserSession(wxData *WXSession) int {
 		return s.Destroy()
 	}
 
-	user := &model.User{ID: wxData.OpenID}
-	if ok := model.Get(user); !ok {
+	if ok := mysql.Exist(&dao.User{}, "id=?", wxData.OpenID); !ok {
 		return StatusBinding
 	}
 	return StatusLogin
 }
 
 func (s *Session) SetAdminSession(data *AdminLogin) int {
-	admin := &model.Admin{User: data.User}
-	if ok := model.Get(admin); !ok {
+	admin := &dao.Admin{User: data.User}
+	if err := mysql.Get(admin, "user=?", data.User); err != nil {
 		return s.Destroy()
 	}
 

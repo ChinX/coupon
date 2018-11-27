@@ -8,10 +8,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/chinx/coupon/dao/mysql"
 	"github.com/chinx/coupon/handler"
 	"github.com/chinx/coupon/module"
-
-	"github.com/chinx/coupon/model"
 	"github.com/chinx/coupon/router"
 	"github.com/chinx/coupon/setting"
 	"github.com/go-session/redis"
@@ -26,7 +25,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = model.InitORM("mysql",
+	err = mysql.InitORM("mysql",
 		fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8",
 			opt.Mysql.User, opt.Mysql.Password,
 			opt.Mysql.Server, opt.Mysql.Port,

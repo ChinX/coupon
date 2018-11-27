@@ -1,4 +1,4 @@
-package model
+package dao
 
 import "time"
 
@@ -7,10 +7,6 @@ const (
 	TaskWaiting
 	TaskDone
 )
-
-func init() {
-	register(&OfficialAccount{}, &Admin{}, &User{}, &Activity{}, &Task{}, &Bargain{})
-}
 
 type OfficialAccount struct {
 	ID        int64     `json:"id" xorm:"id notnull pk autoincr"`
@@ -65,16 +61,17 @@ type Activity struct {
 	PublicityIMG   string    `json:"publicity_img" xorm:"publicity_img varchar(255)"`
 	CreatedAt      time.Time `json:"-" xorm:"created"`
 	DeletedAt      time.Time `json:"-" xorm:"deleted"`
+	EndedAt        time.Time `json:"-" xorm:"ended"`
 	Price          int       `json:"price" xorm:"price notnull default 0"`
 	Final          int       `json:"final" xorm:"final notnull default 0"`
 	Quantity       int       `json:"-" xorm:"quantity notnull default 0"`
-	Total          int64     `json:"total" xorm:"Total notnull default 0"`
+	Total          int64     `json:"total" xorm:"total notnull default 0"`
 	Completed      int64     `json:"completed" xorm:"completed notnull default 0"`
 	DailyTotal     int64     `json:"daily_total" xorm:"daily_total notnull default 0"`
 	DailyCompleted int64     `json:"daily_completed" xorm:"daily_completed notnull default 0"`
 	CouponStarted  time.Time `json:"-"  xorm:"coupon_started notnull"`
 	CouponEnded    time.Time `json:"-" xorm:"coupon_ended notnull"`
-	Expire         int64     `json:"expire" xorm:"expire notnull"`
+	Expire         int64     `json:"expire" xorm:"-"`
 }
 
 func (a *Activity) TableName() string {
@@ -90,7 +87,7 @@ type Task struct {
 	DiscountNum   float64   `json:"discount" xorm:"-"`
 	Quantity      int       `json:"-" xorm:"quantity notnull default 0"`
 	Progress      int       `json:"progress" xorm:"progress notnull default 0"`
-	UserID        string    `xorm:"user_id varchar(40) notnull unique(UQE_USER_ACTIVITY)"`
+	UserID        string    `json:"user_id" xorm:"user_id varchar(40) notnull unique(UQE_USER_ACTIVITY)"`
 	Nickname      string    `json:"nickName" xorm:"-"`
 	AvatarURL     string    `json:"avatar_url" xorm:"-"`
 	ActivityID    int64     `json:"activity_id" xorm:"activity_id notnull unique(UQE_USER_ACTIVITY)"`

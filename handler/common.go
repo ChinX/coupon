@@ -21,14 +21,14 @@ type pagination struct {
 func pageParams(r *http.Request) *api.PageParams {
 	r.ParseForm()
 	params := &api.PageParams{}
-	params.From, _ = strconv.Atoi(r.Form.Get("from"))
-	if params.From < 1 {
-		params.From = 1
-	}
-
 	params.Count, _ = strconv.Atoi(r.Form.Get("count"))
 	if params.Count < 0 || params.Count > 100 {
 		params.Count = 30
+	}
+
+	pageNum, _ := strconv.Atoi(r.Form.Get("from"))
+	if pageNum < 1 {
+		params.From = (pageNum-1) * params.Count
 	}
 
 	log.Println("pageParams", *params)

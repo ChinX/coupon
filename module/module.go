@@ -122,6 +122,7 @@ func UserTask(selfID string, userID string, activityID int64) (map[string]interf
 			}
 
 			task.ShowDialog = 1
+			bargain.DiscountNum = float64(bargain.Discount) / float64(Cardinal)
 			selfBargain = bargain
 		} else {
 			return nil, errors.New("指定任务不存在")

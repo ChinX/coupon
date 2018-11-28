@@ -98,7 +98,7 @@ func UserBinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = userData.Binding(bind)
+	wxUser, err := userData.Binding(bind)
 	if err != nil {
 		log.Println(operation, err)
 		result.Message = err.Error()
@@ -106,7 +106,7 @@ func UserBinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result.Data, _ = module.GetUserInfo(result.UserID)
+	result.UserID, result.Data = wxUser.ID, wxUser
 	result.Status = module.StatusLogin
 	reply(w, http.StatusCreated, result, nil)
 }

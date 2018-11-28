@@ -74,6 +74,7 @@ func ListBargains(taskID int64, from, count int) interface{} {
 		item := list[i].(*dao.Bargain)
 		user, ok := userMap[item.UserID]
 		if !ok {
+			user = &dao.User{}
 			mysql.Get(user, "id=?", item.UserID)
 			userMap[item.UserID] = user
 		}
@@ -97,6 +98,7 @@ func UserTask(selfID string, userID string, activityID int64) (map[string]interf
 	activity.DetailURL = urlFormat(activity.DetailURL)
 	activity.PublicityIMG = urlFormat(activity.PublicityIMG)
 	activity.AvatarURL = urlFormat(activity.AvatarURL)
+	activity.Expire = int64(activity.EndedAt.Sub(time.Now()).Seconds())
 
 	task := &dao.Task{}
 	var selfBargain *dao.Bargain

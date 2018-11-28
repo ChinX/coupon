@@ -11,10 +11,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/chinx/coupon/dao/mysql"
-
 	"github.com/chinx/coupon/dao"
-
+	"github.com/chinx/coupon/dao/mysql"
 	"github.com/go-session/session"
 )
 
@@ -79,28 +77,36 @@ func (s *Session) ValidateSignature(sign string, raw string) (int, error) {
 	return StatusLogin, nil
 }
 
-func (s *Session) Binding(data *Binding) error {
+func (s *Session) Binding(data *Binding) (*dao.User, error) {
 	user := &dao.User{}
 	err := json.Unmarshal([]byte(data.RawData), user)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	openid, _ := s.store.Get(idKey)
 	user.ID = openid.(string)
 
-	has := mysql.Exist(user, "id=?", user.ID)
-	if !has {
-		err := mysql.Insert(user)
-		if err != nil {
-			return errors.New("绑定用户信息失败")
+	condition := &dao.User{}
+
+	if err := mysql.Get(condition, "id=?", user.ID); err != nil {
+		if err := mysql.Insert(user); err != nil {
+			return nil, errors.New("绑定用户信息失败")
 		}
 	} else {
-		err := mysql.Update(user, "id=?", user.ID)
-		if err != nil || err != mysql.NoRecords {
-			return errors.New("更新用户信息失败")
+		if condition.AvatarURL != user.AvatarURL ||
+			condition.City != user.City ||
+			condition.Province != user.Province ||
+			condition.Country != user.Country ||
+			condition.Gender != user.Gender ||
+			condition.Language != user.Language ||
+			condition.Nickname != user.Nickname {
+			err := mysql.Update(user, "id=?", user.ID)
+			if err != nil || err != mysql.NoRecords {
+				return nil, errors.New("更新用户信息失败")
+			}
 		}
 	}
-	return nil
+	return user, nil
 }
 
 func (s *Session) SetUserSession(wxData *WXSession) int {
@@ -144,7 +150,7 @@ func (s *Session) Destroy() int {
 	return StatusLogout
 }
 
-func (s *Session)Refresh(w http.ResponseWriter, r *http.Request)  {
+func (s *Session) Refresh(w http.ResponseWriter, r *http.Request) {
 	w.Header().Del("Set-Cookie")
 	r.Header.Del("Cookie")
 	s.w = w

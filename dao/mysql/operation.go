@@ -88,7 +88,7 @@ func list(db DB, tb tabler, offset, count int, condition string, args ...interfa
 		return 0, []interface{}{}
 	}
 
-	rows, err := db.Desc("id").Limit(count, offset).Rows(tb)
+	rows, err := db.Desc("id").Where(condition, args...).Limit(count, offset).Rows(tb)
 	if err != nil {
 		log.Printf(findFailed, tb.TableName(), err)
 		return 0, []interface{}{}

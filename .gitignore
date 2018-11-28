@@ -12,6 +12,7 @@ coupon*
 cert
 conf
 crypts
+static
 tools
 
 # Test binary, build with `go test -c`

@@ -144,6 +144,14 @@ func (s *Session) Destroy() int {
 	return StatusLogout
 }
 
+func (s *Session)Refresh(w http.ResponseWriter, r *http.Request)  {
+	w.Header().Del("Set-Cookie")
+	r.Header.Del("Cookie")
+	s.w = w
+	s.r = r
+	s.store, _ = session.Refresh(context.Background(), s.w, s.r)
+}
+
 func (s *Session) UserID() (string, int) {
 	userID, ok := s.store.Get(idKey)
 	if !ok {

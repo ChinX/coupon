@@ -39,7 +39,13 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if userDI, _ := userData.UserID(); userDI != "" && userDI != wxData.OpenID{
+		log.Printf("%s != %s, delete and refresh cookie\n", userDI, wxData.OpenID)
+		userData.Refresh(w, r)
+	}
+
 	userData.ShowALL()
+	result.UserID = wxData.OpenID
 	result.Status = userData.SetUserSession(wxData)
 	if result.Status == module.StatusLogout {
 		log.Println(operation, err)

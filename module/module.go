@@ -17,7 +17,7 @@ const (
 )
 
 func GetUserInfo(userID string) (*dao.User, bool) {
-	user := &dao.User{ID: userID}
+	user := &dao.User{}
 	return user, mysql.Get(user, "id=?", userID) == nil
 }
 

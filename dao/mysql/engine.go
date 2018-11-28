@@ -23,6 +23,7 @@ func InitORM(driver, source string) error {
 
 	eng.SetMapper(core.GonicMapper{})
 	engine = eng
+	engine.ShowSQL(true)
 
 	syncTables()
 	return nil

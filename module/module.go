@@ -5,9 +5,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/chinx/coupon/dao/mysql"
-
 	"github.com/chinx/coupon/dao"
+	"github.com/chinx/coupon/dao/mysql"
 )
 
 const (
@@ -24,7 +23,7 @@ func GetUserInfo(userID string) (*dao.User, bool) {
 func ListActivities(userID string, from, count int) map[string]interface{} {
 	activity := &dao.Activity{}
 	timeNow := time.Now()
-	total, list := mysql.List(activity, from, count, "ISNULL(deleted_at)")
+	total, list := mysql.List(activity, from, count, "")
 	account := &dao.OfficialAccount{}
 	mysql.Get(account, "id > 0")
 	account.AvatarURL = urlFormat(account.AvatarURL)
@@ -54,7 +53,7 @@ func ListActivities(userID string, from, count int) map[string]interface{} {
 	task := &dao.Task{}
 
 	if userID != "" {
-		mysql.GetLast(task, "id","user_id=?", userID)
+		mysql.GetLast(task, "id", "user_id=?", userID)
 	}
 
 	return map[string]interface{}{
@@ -90,7 +89,7 @@ func ListBargains(taskID int64, from, count int) interface{} {
 
 func UserTask(selfID string, userID string, activityID int64) (map[string]interface{}, error) {
 	activity := &dao.Activity{}
-	err := mysql.Get(activity, "id=? and ISNULL(deleted_at)", activityID)
+	err := mysql.Get(activity, "id=?", activityID)
 	if err != nil {
 		return nil, errors.New("指定任务不存在")
 	}
@@ -149,7 +148,7 @@ func UserTask(selfID string, userID string, activityID int64) (map[string]interf
 			return nil, errors.New("指定任务不存在")
 		}
 	} else {
-		if mysql.Exist(&dao.Bargain{}, "user_id=? and task_id=?", selfID, task.ID) {
+		if selfID != "" && mysql.Exist(&dao.Bargain{}, "user_id=? and task_id=?", selfID, task.ID) {
 			task.Bargained = 1
 		}
 	}
@@ -185,8 +184,10 @@ func CreateBargain(userID string, taskID int64) (map[string]interface{}, error) 
 	bargain := &dao.Bargain{}
 
 	err = mysql.Get(bargain, "user_id=? and task_id=?", userID, task.ID)
-	if err != nil {
+	if err == nil {
 		return nil, errors.New("不能重复砍刀")
+	} else if err != mysql.NoRecords {
+		return nil, errors.New("砍刀失败：" + err.Error())
 	}
 
 	bargain.UserID = userID

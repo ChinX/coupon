@@ -13,6 +13,11 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "http://www.windup.cn", http.StatusMovedPermanently)
 }
 
+func VerificationHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("2efb1213bd8a6bd6049be787f2480189"))
+}
+
 func ListActivities(w http.ResponseWriter, r *http.Request) {
 	operation := "ListActivities"
 	log.Println(operation, r.Header.Get("Cookie"))
@@ -32,12 +37,15 @@ func ListActivities(w http.ResponseWriter, r *http.Request) {
 func UserTask(w http.ResponseWriter, r *http.Request) {
 	operation := "UserTask"
 	log.Println(operation, r.Header.Get("Cookie"))
-	result := checkUser(w, r)
-	if result.Status != module.StatusLogin {
-		return
-	}
 
-	log.Println(operation, *result)
+	result := &api.ReplyResult{Status: module.StatusLogout}
+	userData, err := module.NewSession(w, r)
+	if err == nil {
+		result.UserID, result.Status = userData.UserID()
+	}
+	userData.ShowALL()
+	log.Println(operation, err)
+
 	userID := urlParam(r, "user_id")
 	activityID, err := strconv.Atoi(urlParam(r, "activity_id"))
 	if err != nil || activityID == 0 {
@@ -61,12 +69,15 @@ func UserTask(w http.ResponseWriter, r *http.Request) {
 func ListBargain(w http.ResponseWriter, r *http.Request) {
 	operation := "ListBargain"
 	log.Println(operation, r.Header.Get("Cookie"))
-	result := checkUser(w, r)
-	if result.Status != module.StatusLogin {
-		return
-	}
 
-	log.Println(operation, *result)
+	result := &api.ReplyResult{Status: module.StatusLogout}
+	userData, err := module.NewSession(w, r)
+	if err == nil {
+		result.UserID, result.Status = userData.UserID()
+	}
+	userData.ShowALL()
+	log.Println(operation, err)
+
 	taskID, err := strconv.Atoi(urlParam(r, "task_id"))
 	if err != nil || taskID == 0 {
 		log.Println(operation, err)

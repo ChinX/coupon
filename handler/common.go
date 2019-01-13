@@ -19,15 +19,16 @@ type pagination struct {
 }
 
 func pageParams(r *http.Request) *api.PageParams {
-	r.ParseForm()
 	params := &api.PageParams{}
-	params.Count, _ = strconv.Atoi(r.Form.Get("count"))
+	params.Count, _ = strconv.Atoi(r.URL.Query().Get("count"))
 	if params.Count < 0 || params.Count > 100 {
 		params.Count = 30
 	}
 
-	pageNum, _ := strconv.Atoi(r.Form.Get("from"))
+	pageNum, _ := strconv.Atoi(r.URL.Query().Get("from"))
 	if pageNum < 1 {
+		params.From = 0
+	}else{
 		params.From = (pageNum-1) * params.Count
 	}
 
@@ -89,8 +90,6 @@ func reply(w http.ResponseWriter, status int, data interface{}, err error) {
 		if err != nil {
 			log.Println(err)
 		} else {
-
-
 			log.Println(status, string(result))
 		}
 	}

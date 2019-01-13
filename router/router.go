@@ -1,6 +1,7 @@
 package router
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/chinx/cobweb"
@@ -21,6 +22,14 @@ func InitRouter() (http.Handler, error) {
 		mux.Post("/task/:task_id/bargains", handler.CreateBargain)
 		mux.Get("/task/:task_id/bargains", handler.ListBargain)
 		mux.Post("/task/:task_id/cash", handler.CreateCash)
+	}, func(w http.ResponseWriter, r *http.Request) {
+		log.Println("")
+		log.Println("")
+		log.Println("request url:", r.URL.String())
+	})
+
+	mux.Group("/v1/source/", func() {
+		mux.Get("/*filename", handler.StaticHandler)
 	})
 
 	mux.Group("/editor", func() {

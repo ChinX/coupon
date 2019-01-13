@@ -59,6 +59,7 @@ type Activity struct {
 	AvatarURL      string    `json:"avatar_url" xorm:"avatar_url varchar(255)"`
 	Description    string    `json:"description" xorm:"description varchar(255)"`
 	PublicityIMG   string    `json:"publicity_img" xorm:"publicity_img varchar(255)"`
+	ShareIMG       string    `json:"share_img" xorm:"share_img varchar(255)"`
 	CreatedAt      time.Time `json:"-" xorm:"created"`
 	DeletedAt      time.Time `json:"-" xorm:"deleted"`
 	EndedAt        time.Time `json:"-" xorm:"ended"`

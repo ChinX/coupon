@@ -237,7 +237,7 @@ func CreateBargain(userID string, taskID int64) (map[string]interface{}, error) 
 
 func CreateCash(userID string, taskID int64) (*dao.Task, error) {
 	task := &dao.Task{ID: taskID}
-	err := mysql.Get(task, "id=?", userID)
+	err := mysql.Get(task, "user_id=?", userID)
 	if err != nil {
 		return nil, errors.New("指定的任务不存在")
 	}

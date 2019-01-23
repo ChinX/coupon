@@ -1,9 +1,13 @@
 package module
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"github.com/chinx/coupon/dao/mysql"
+	"github.com/chinx/coupon/model"
 
 	"github.com/chinx/mohist/iorw"
 )
@@ -19,6 +23,7 @@ type WXAuth struct {
 }
 
 type WXSession struct {
+	ID         int64  `json:"-"`
 	SessionKey string `json:"session_key"`
 	OpenID     string `json:"openid"`
 }
@@ -53,5 +58,16 @@ func (wx *WXAuth) AuthSession() (*WXSession, error) {
 		return nil, fmt.Errorf("parse jsom body error: %s", err)
 	}
 
+	user := &model.User{}
+
+	err = mysql.Get(user, "openid=?", session.OpenID)
+	if err == mysql.NoRecords {
+		user.Openid = session.OpenID
+		err = mysql.Insert(user)
+	}
+	if err != nil {
+		return nil, errors.New("绑定用户信息失败")
+	}
+	session.ID = user.ID
 	return session, nil
 }

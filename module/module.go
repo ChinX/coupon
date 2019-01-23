@@ -5,33 +5,37 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/chinx/coupon/dao"
 	"github.com/chinx/coupon/dao/mysql"
+	"github.com/chinx/coupon/model"
 )
 
 const (
 	min        = 1
 	Cardinal   = 100
 	TimeFormat = "2006年01月02日"
+
+	TaskDoing = iota
+	TaskWaiting
+	TaskDone
 )
 
-func GetUserInfo(userID string) (*dao.User, bool) {
-	user := &dao.User{}
+func GetUserInfo(userID int64) (*model.User, bool) {
+	user := &model.User{}
 	return user, mysql.Get(user, "id=?", userID) == nil
 }
 
-func ListActivities(userID string, from, count int) map[string]interface{} {
-	activity := &dao.Activity{}
+func ListActivities(userID int64, from, count int) map[string]interface{} {
+	activity := &model.Activity{}
 	timeNow := time.Now()
 	total, list := mysql.List(activity, from, count, "")
-	account := &dao.OfficialAccount{}
+	account := &model.WXOfficial{}
 	mysql.Get(account, "id > 0")
 	account.AvatarURL = urlFormat(account.AvatarURL)
 	account.QRCode = urlFormat(account.QRCode)
 
 	l := len(list)
 	for i := 0; i < l; i++ {
-		item := list[i].(*dao.Activity)
+		item := list[i].(*model.Activity)
 		item.DetailURL = urlFormat(item.DetailURL)
 		item.PublicityIMG = urlFormat(item.PublicityIMG)
 		item.AvatarURL = urlFormat(item.AvatarURL)
@@ -50,9 +54,9 @@ func ListActivities(userID string, from, count int) map[string]interface{} {
 		}
 	}
 
-	task := &dao.Task{}
+	task := &model.Task{}
 
-	if userID != "" {
+	if userID > 0 {
 		mysql.GetLast(task, "id", "user_id=?", userID)
 	}
 
@@ -65,15 +69,15 @@ func ListActivities(userID string, from, count int) map[string]interface{} {
 }
 
 func ListBargains(taskID int64, from, count int) interface{} {
-	bargain := &dao.Bargain{}
+	bargain := &model.Bargain{}
 	total, list := mysql.List(bargain, from, count, "task_id=?", taskID)
-	userMap := make(map[string]*dao.User)
+	userMap := make(map[int64]*model.User)
 
 	for i := range list {
-		item := list[i].(*dao.Bargain)
+		item := list[i].(*model.Bargain)
 		user, ok := userMap[item.UserID]
 		if !ok {
-			user = &dao.User{}
+			user = &model.User{}
 			mysql.Get(user, "id=?", item.UserID)
 			userMap[item.UserID] = user
 		}
@@ -87,8 +91,8 @@ func ListBargains(taskID int64, from, count int) interface{} {
 	}
 }
 
-func UserTask(selfID string, userID string, activityID int64) (map[string]interface{}, error) {
-	activity := &dao.Activity{}
+func UserTask(selfID int64, userID int64, activityID int64) (map[string]interface{}, error) {
+	activity := &model.Activity{}
 	err := mysql.Get(activity, "id=?", activityID)
 	if err != nil {
 		return nil, errors.New("指定任务不存在")
@@ -99,8 +103,8 @@ func UserTask(selfID string, userID string, activityID int64) (map[string]interf
 	activity.AvatarURL = urlFormat(activity.AvatarURL)
 	activity.Expire = int64(activity.EndedAt.Sub(time.Now()).Seconds())
 
-	task := &dao.Task{}
-	var selfBargain *dao.Bargain
+	task := &model.Task{}
+	var selfBargain *model.Bargain
 	err = mysql.Get(task, "user_id=? and activity_id=?", userID, activityID)
 	if err != nil {
 		if selfID == userID {
@@ -124,7 +128,7 @@ func UserTask(selfID string, userID string, activityID int64) (map[string]interf
 				return nil, err
 			}
 
-			bargain := &dao.Bargain{
+			bargain := &model.Bargain{
 				UserID:   userID,
 				TaskID:   task.ID,
 				Message:  "轻松砍价到0元",
@@ -148,13 +152,13 @@ func UserTask(selfID string, userID string, activityID int64) (map[string]interf
 			return nil, errors.New("指定任务不存在")
 		}
 	} else {
-		if selfID != "" && mysql.Exist(&dao.Bargain{}, "user_id=? and task_id=?", selfID, task.ID) {
+		if selfID > 0 && mysql.Exist(&model.Bargain{}, "user_id=? and task_id=?", selfID, task.ID) {
 			task.Bargained = 1
 		}
 	}
 
-	userMap := make(map[string]*dao.User)
-	user := &dao.User{}
+	userMap := make(map[int64]*model.User)
+	user := &model.User{}
 	mysql.Get(user, "id=?", task.UserID)
 	userMap[task.UserID] = user
 	task.DiscountNum = float64(task.Discount) / float64(Cardinal)
@@ -170,8 +174,8 @@ func UserTask(selfID string, userID string, activityID int64) (map[string]interf
 	}, nil
 }
 
-func CreateBargain(userID string, taskID int64) (map[string]interface{}, error) {
-	task := &dao.Task{ID: taskID}
+func CreateBargain(userID int64, taskID int64) (map[string]interface{}, error) {
+	task := &model.Task{ID: taskID}
 	err := mysql.Get(task, "id=?", taskID)
 	if err != nil {
 		return nil, errors.New("指定的任务不存在")
@@ -181,7 +185,7 @@ func CreateBargain(userID string, taskID int64) (map[string]interface{}, error) 
 		return nil, errors.New("您来晚已一步，对方任务已完成")
 	}
 
-	bargain := &dao.Bargain{}
+	bargain := &model.Bargain{}
 
 	err = mysql.Get(bargain, "user_id=? and task_id=?", userID, task.ID)
 	if err == nil {
@@ -200,7 +204,7 @@ func CreateBargain(userID string, taskID int64) (map[string]interface{}, error) 
 	bargain.Discount = count
 
 	if task.Progress == task.Quantity {
-		task.Status = dao.TaskWaiting
+		task.Status = TaskWaiting
 	}
 
 	task.DiscountNum = float64(task.Discount) / float64(Cardinal)
@@ -225,7 +229,7 @@ func CreateBargain(userID string, taskID int64) (map[string]interface{}, error) 
 	if err != nil {
 		return nil, err
 	}
-	user := &dao.User{}
+	user := &model.User{}
 	mysql.Get(user, "id=?", userID)
 	bargain.Nickname = user.Nickname
 	bargain.AvatarURL = user.AvatarURL
@@ -235,22 +239,22 @@ func CreateBargain(userID string, taskID int64) (map[string]interface{}, error) 
 	return map[string]interface{}{"task": task, "bargain": bargain}, nil
 }
 
-func CreateCash(userID string, taskID int64) (*dao.Task, error) {
-	task := &dao.Task{ID: taskID}
+func CreateCash(userID int64, taskID int64) (*model.Task, error) {
+	task := &model.Task{ID: taskID}
 	err := mysql.Get(task, "user_id=?", userID)
 	if err != nil {
 		return nil, errors.New("指定的任务不存在")
 	}
 
-	if task.Status == dao.TaskDone {
+	if task.Status == TaskDone {
 		return nil, errors.New("不能重复兑换")
 	}
 
-	if task.Status != dao.TaskWaiting || task.Progress != task.Quantity {
+	if task.Status != TaskWaiting || task.Progress != task.Quantity {
 		return nil, errors.New("兑换条件未达成")
 	}
 
-	task.Status = dao.TaskDone
+	task.Status = TaskDone
 	err = mysql.Update(task, "id=?", taskID)
 	if err != nil {
 		return nil, errors.New("兑票失败")

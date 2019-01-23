@@ -6,8 +6,6 @@ import (
 	"reflect"
 
 	"github.com/go-xorm/xorm"
-
-	"github.com/chinx/coupon/dao"
 )
 
 var (
@@ -18,11 +16,6 @@ var (
 	deleteFailed   = "delete from table %s failed, error: %s\n"
 	scanRowsFailed = "scan rows from table %s result failed, error: %s\n"
 )
-
-func init() {
-	register(&dao.OfficialAccount{}, &dao.Admin{}, &dao.User{},
-		&dao.Activity{}, &dao.Task{}, &dao.Bargain{})
-}
 
 type tabler interface {
 	TableName() string

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/chinx/cobweb"
 	"github.com/chinx/coupon/api"
-	"github.com/chinx/coupon/module"
 	"io"
 	"io/ioutil"
 	"log"
@@ -98,29 +97,4 @@ func reply(w http.ResponseWriter, status int, data interface{}, err error) {
 	w.Write(result)
 }
 
-func checkLogin(w http.ResponseWriter, r *http.Request, permission int) *api.ReplyResult {
-	result := &api.ReplyResult{Status: module.StatusLogout}
-	userData, err := module.NewSession(w, r)
-	if err != nil {
-		log.Println("checkLogin", err)
-		result.Message = "获取登录信息失败"
-		reply(w, http.StatusUnauthorized, result, err)
-		return result
-	}
 
-	log.Println("checkLogin")
-	userData.ShowALL()
-	if !userData.IsPermission(permission) {
-		result.Message = "无权限"
-		reply(w, http.StatusForbidden, result, err)
-		return result
-	}
-
-	result.UserID, result.Status = userData.UserID()
-	if result.Status == module.StatusLogout {
-		result.Message = "登录状态已失效，请重新登录"
-		reply(w, http.StatusUnauthorized, result, nil)
-		return result
-	}
-	return result
-}

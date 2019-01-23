@@ -9,8 +9,7 @@ import (
 )
 
 func UserLogin(w http.ResponseWriter, r *http.Request) {
-	operation := "UserLogin"
-	log.Println(operation, r.Header.Get("Cookie"))
+	operation := "[UserLogin]"
 	auth := &api.UserLogin{}
 	result := &api.ReplyResult{Status: module.StatusLogout}
 	err := readBody(r.Body, auth)
@@ -39,13 +38,13 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if userDI, _ := userData.UserID(); userDI != "" && userDI != wxData.OpenID{
-		log.Printf("%s != %s, delete and refresh cookie\n", userDI, wxData.OpenID)
+	if openID, _ := userData.OpenID(); openID != "" && openID != wxData.OpenID {
+		log.Printf("%s != %s, delete and refresh cookie\n", openID, wxData.OpenID)
 		userData.Refresh(w, r)
 	}
 
 	userData.ShowALL()
-	result.UserID = wxData.OpenID
+	result.UserID = wxData.ID
 	result.Status = userData.SetUserSession(wxData)
 	if result.Status == module.StatusLogout {
 		log.Println(operation, err)
@@ -54,7 +53,7 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if result.Status == module.StatusLogin{
+	if result.Status == module.StatusLogin {
 		user, ok := module.GetUserInfo(result.UserID)
 		log.Println(operation, user, ok)
 		if ok {
@@ -109,12 +108,4 @@ func UserBinding(w http.ResponseWriter, r *http.Request) {
 	result.UserID, result.Data = wxUser.ID, wxUser
 	result.Status = module.StatusLogin
 	reply(w, http.StatusCreated, result, nil)
-}
-
-func checkUser(w http.ResponseWriter, r *http.Request) *api.ReplyResult {
-	return checkLogin(w, r, module.PermissionUser)
-}
-
-func checkAdmin(w http.ResponseWriter, r *http.Request) *api.ReplyResult {
-	return checkLogin(w, r, module.PermissionAdmin)
 }

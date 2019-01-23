@@ -11,7 +11,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/chinx/coupon/dao"
+	"github.com/chinx/coupon/model"
+
 	"github.com/chinx/coupon/dao/mysql"
 	"github.com/go-session/session"
 )
@@ -24,7 +25,8 @@ const (
 	PermissionUser  int = 2
 	PermissionAdmin int = 7
 
-	idKey         = "openid"
+	userIdKey     = "user_id"
+	openIdKey     = "open_id"
 	sessionKey    = "session_key"
 	permissionKey = "permission"
 )
@@ -77,21 +79,18 @@ func (s *Session) ValidateSignature(sign string, raw string) (int, error) {
 	return StatusLogin, nil
 }
 
-func (s *Session) Binding(data *Binding) (*dao.User, error) {
-	user := &dao.User{}
+func (s *Session) Binding(data *Binding) (*model.User, error) {
+	user := &model.User{}
 	err := json.Unmarshal([]byte(data.RawData), user)
 	if err != nil {
 		return nil, err
 	}
-	openid, _ := s.store.Get(idKey)
-	user.ID = openid.(string)
+	userID, _ := s.store.Get(userIdKey)
+	user.ID = userID.(int64)
 
-	condition := &dao.User{}
-
+	condition := &model.User{}
 	if err := mysql.Get(condition, "id=?", user.ID); err != nil {
-		if err := mysql.Insert(user); err != nil {
-			return nil, errors.New("绑定用户信息失败")
-		}
+		return nil, errors.New("绑定用户信息失败")
 	} else {
 		if condition.AvatarURL != user.AvatarURL ||
 			condition.City != user.City ||
@@ -110,7 +109,8 @@ func (s *Session) Binding(data *Binding) (*dao.User, error) {
 }
 
 func (s *Session) SetUserSession(wxData *WXSession) int {
-	s.store.Set(idKey, wxData.OpenID)
+	s.store.Set(userIdKey, wxData.ID)
+	s.store.Set(openIdKey, wxData.OpenID)
 	s.store.Set(sessionKey, wxData.SessionKey)
 	s.store.Set(permissionKey, PermissionUser)
 	err := s.store.Save()
@@ -118,14 +118,14 @@ func (s *Session) SetUserSession(wxData *WXSession) int {
 		return s.Destroy()
 	}
 
-	if ok := mysql.Exist(&dao.User{}, "id=?", wxData.OpenID); !ok {
+	if ok := mysql.Exist(&model.User{}, "id=?", wxData.ID); !ok {
 		return StatusBinding
 	}
 	return StatusLogin
 }
 
 func (s *Session) SetAdminSession(data *AdminLogin) int {
-	admin := &dao.Admin{User: data.User}
+	admin := &model.Admin{User: data.User}
 	if err := mysql.Get(admin, "user=?", data.User); err != nil {
 		return s.Destroy()
 	}
@@ -136,7 +136,7 @@ func (s *Session) SetAdminSession(data *AdminLogin) int {
 		return s.Destroy()
 	}
 
-	s.store.Set(idKey, data.User)
+	s.store.Set(userIdKey, data.User)
 	s.store.Set(permissionKey, PermissionAdmin)
 	err := s.store.Save()
 	if err != nil {
@@ -158,8 +158,8 @@ func (s *Session) Refresh(w http.ResponseWriter, r *http.Request) {
 	s.store, _ = session.Refresh(context.Background(), s.w, s.r)
 }
 
-func (s *Session) UserID() (string, int) {
-	userID, ok := s.store.Get(idKey)
+func (s *Session) OpenID() (string, int) {
+	userID, ok := s.store.Get(openIdKey)
 	if !ok {
 		return "", s.Destroy()
 	}
@@ -167,9 +167,18 @@ func (s *Session) UserID() (string, int) {
 	return userID.(string), StatusLogin
 }
 
+func (s *Session) UserID() (int64, int) {
+	userID, ok := s.store.Get(userIdKey)
+	if !ok {
+		return 0, s.Destroy()
+	}
+
+	return userID.(int64), StatusLogin
+}
+
 func (s *Session) ShowALL() {
-	log.Println(idKey)
-	log.Println(s.store.Get(idKey))
+	log.Println(userIdKey)
+	log.Println(s.store.Get(userIdKey))
 	log.Println(sessionKey)
 	log.Println(s.store.Get(sessionKey))
 	log.Println(permissionKey)

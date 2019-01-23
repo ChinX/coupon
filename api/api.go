@@ -10,7 +10,7 @@ type PageParams struct {
 }
 
 type ReplyResult struct {
-	UserID     string      `json:"user_id"`
+	UserID     int64       `json:"user_id"`
 	Status     int         `json:"status"`
 	Message    string      `json:"message"`
 	Data       interface{} `json:"data"`

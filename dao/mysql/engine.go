@@ -25,17 +25,17 @@ func InitORM(driver, source string) error {
 	engine = eng
 	engine.ShowSQL(true)
 
-	syncTables()
+	SyncTables()
 	return nil
 }
 
-func syncTables() {
+func SyncTables() {
 	for _, value := range tables {
 		engine.Sync2(value)
 	}
 }
 
-func register(tabs ...xorm.TableName) {
+func Register(tabs ...xorm.TableName) {
 	for _, tab := range tabs {
 		if isExist(tab.TableName()) {
 			fmt.Printf("table %s is already exists", tab.TableName())

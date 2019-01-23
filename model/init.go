@@ -5,11 +5,5 @@ import (
 )
 
 func init() {
-	mysql.Register(
-		&WXOfficial{},
-		&Admin{},
-		&User{},
-		&Activity{},
-		&Task{},
-		&Bargain{})
+	mysql.Register(&WXOfficial{},&Admin{},&User{},&Activity{},&Task{},&Bargain{})
 }

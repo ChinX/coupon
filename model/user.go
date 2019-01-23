@@ -12,7 +12,7 @@ type User struct {
 	Province  string    `json:"province" xorm:"province varchar(40)"`
 	Country   string    `json:"country" xorm:"country varchar(40)"`
 	Language  string    `json:"language" xorm:"language varchar(20)"`
-	CreatedAt time.Time `json:"-" xorm:"created_at"`
+	CreatedAt time.Time `json:"-"`
 }
 
 func (u *User) TableName() string {

@@ -3,13 +3,12 @@ package module
 import (
 	"errors"
 	"fmt"
+	"github.com/chinx/mohist/iorw"
 	"net/http"
 	"net/url"
 
 	"github.com/chinx/coupon/dao/mysql"
 	"github.com/chinx/coupon/model"
-
-	"github.com/chinx/mohist/iorw"
 )
 
 var (

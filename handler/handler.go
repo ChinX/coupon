@@ -85,9 +85,11 @@ func CreateBargain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	taskBargain, err := module.CreateBargain(result.UserID, int64(taskID))
+	taskBargain, errCode, surplus, err := module.CreateBargain(result.UserID, int64(taskID))
 	if err != nil {
 		log.Println(operation, err)
+		result.ErrorCode = errCode
+		result.Surplus = surplus
 		result.Message = err.Error()
 		reply(w, http.StatusInternalServerError, result, err)
 		return

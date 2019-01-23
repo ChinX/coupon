@@ -24,9 +24,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	opt.Redis.Password = ""
-	log.Println(opt.Redis.Database)
-	opt.Mysql.Password = "vessel"
 
 	err = mysql.InitORM("mysql",
 		fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8",
@@ -54,8 +51,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	http.ListenAndServe(":8080", serveHandler)
-	return
 	certData, err := ioutil.ReadFile(opt.CrtFile)
 	if err != nil {
 		log.Fatal(err)

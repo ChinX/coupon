@@ -118,7 +118,8 @@ func (s *Session) SetUserSession(wxData *WXSession) int {
 		return s.Destroy()
 	}
 
-	if ok := mysql.Exist(&model.User{}, "id=?", wxData.ID); !ok {
+	user := &model.User{}
+	if err := mysql.Get(user, "id=?", wxData.ID); err != nil || user.Nickname == "" {
 		return StatusBinding
 	}
 	return StatusLogin
@@ -173,7 +174,7 @@ func (s *Session) UserID() (int64, int) {
 		return 0, s.Destroy()
 	}
 
-	return userID.(int64), StatusLogin
+	return int64(userID.(float64)), StatusLogin
 }
 
 func (s *Session) ShowALL() {

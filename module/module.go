@@ -17,6 +17,14 @@ const (
 	TaskDoing = iota
 	TaskWaiting
 	TaskDone
+	LimitCount = 3
+)
+
+const (
+	NoError = iota
+	LimitError
+	FinishError
+	OverError
 )
 
 func GetUserInfo(userID int64) (*model.User, bool) {
@@ -174,25 +182,38 @@ func UserTask(selfID int64, userID int64, activityID int64) (map[string]interfac
 	}, nil
 }
 
-func CreateBargain(userID int64, taskID int64) (map[string]interface{}, error) {
+func CreateBargain(userID int64, taskID int64) (map[string]interface{}, int, int, error) {
+	surplus := LimitCount
 	task := &model.Task{ID: taskID}
 	err := mysql.Get(task, "id=?", taskID)
 	if err != nil {
-		return nil, errors.New("指定的任务不存在")
+		return nil, OverError, surplus, errors.New("指定的任务不存在")
 	}
 
 	if task.Progress == task.Quantity {
-		return nil, errors.New("您来晚已一步，对方任务已完成")
+		return nil, FinishError, surplus, errors.New("您来晚已一步，对方任务已完成")
 	}
 
 	bargain := &model.Bargain{}
-
-	err = mysql.Get(bargain, "user_id=? and task_id=?", userID, task.ID)
-	if err == nil {
-		return nil, errors.New("不能重复砍刀")
-	} else if err != mysql.NoRecords {
-		return nil, errors.New("砍刀失败：" + err.Error())
+	if mysql.Exist(&model.Bargain{}, "user_id=? and task_id=?", userID, task.ID) {
+		return nil, NoError, surplus, errors.New("不能重复砍刀")
 	}
+
+	y, m, d := time.Now().Date()
+	dateTime := time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+	_, list := mysql.List(&model.Bargain{}, 0, 4, "user_id=? AND created_at > ?", userID, dateTime)
+	l := len(list)
+	for i := 0; i < len(list) && l > LimitCount; i++ {
+		item := list[i].(*model.Bargain)
+		if mysql.Exist(&model.Task{}, "user_id=? and id=?", userID, item.TaskID) {
+			l--
+		}
+	}
+
+	if l >= LimitCount {
+		return nil, LimitError, 0, errors.New("今日次数已达上限")
+	}
+	surplus = LimitCount - l
 
 	bargain.UserID = userID
 	bargain.TaskID = task.ID
@@ -217,17 +238,17 @@ func CreateBargain(userID int64, taskID int64) (map[string]interface{}, error) {
 	err = session.Update(task, "id=?", taskID)
 	if err != nil {
 		session.Rollback()
-		return nil, err
+		return nil, NoError, surplus, err
 	}
 
 	err = session.Insert(bargain)
 	if err != nil {
 		session.Rollback()
-		return nil, err
+		return nil, NoError, surplus, err
 	}
 	err = session.Commit()
 	if err != nil {
-		return nil, err
+		return nil, NoError, surplus, err
 	}
 	user := &model.User{}
 	mysql.Get(user, "id=?", userID)
@@ -236,7 +257,7 @@ func CreateBargain(userID int64, taskID int64) (map[string]interface{}, error) {
 
 	task.Started = task.CouponStarted.Format(TimeFormat)
 	task.Ended = task.CouponEnded.Format(TimeFormat)
-	return map[string]interface{}{"task": task, "bargain": bargain}, nil
+	return map[string]interface{}{"task": task, "bargain": bargain}, NoError, surplus, nil
 }
 
 func CreateCash(userID int64, taskID int64) (*model.Task, error) {

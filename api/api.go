@@ -16,4 +16,6 @@ type ReplyResult struct {
 	Data       interface{} `json:"data"`
 	StatusCode int         `json:"-"`
 	Error      error       `json:"-"`
+	ErrorCode  int         `json:"error_code"`
+	Surplus    int         `json:"surplus"`
 }

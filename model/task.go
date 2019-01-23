@@ -19,8 +19,8 @@ type Task struct {
 	CouponEnded   time.Time `json:"-" xorm:"coupon_ended notnull"`
 	Started       string    `json:"coupon_started" xorm:"-"`
 	Ended         string    `json:"coupon_ended"  xorm:"-"`
-	CreatedAt     time.Time `json:"-" xorm:"created"`
-	DeletedAt     time.Time `json:"-" xorm:"deleted"`
+	CreatedAt     time.Time `json:"-" xorm:"created_at"`
+	DeletedAt     time.Time `json:"-" xorm:"created_at"`
 	ShowDialog    int       `json:"show_dialog" xorm:"-"`
 	Bargained     int       `json:"bargained" xorm:"-"`
 	Status        int       `json:"status" xorm:"status"` //0: 进行中, 1:未兑换， 2:已兑换

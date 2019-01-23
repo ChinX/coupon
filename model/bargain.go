@@ -11,8 +11,8 @@ type Bargain struct {
 	Nickname    string    `json:"nickName" xorm:"-"`
 	AvatarURL   string    `json:"avatar_url" xorm:"-"`
 	TaskID      int64     `json:"task_id" xorm:"task_id notnull unique(UQE_USER_TASK)"`
-	CreatedAt   time.Time `json:"-" xorm:"created"`
-	DeletedAt   time.Time `json:"-" xorm:"deleted"`
+	CreatedAt   time.Time `json:"-" xorm:"created_at"`
+	DeletedAt   time.Time `json:"-" xorm:"deleted_at"`
 }
 
 func (b *Bargain) TableName() string {

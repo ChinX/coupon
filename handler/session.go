@@ -25,7 +25,7 @@ func AdminSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func checkSession(w http.ResponseWriter, r *http.Request, permission int) {
-	result := &api.ReplyResult{Status: module.StatusLogout}
+	result := &api.ReplyResult{Status: module.StatusLogout, ErrorCode: module.NoError, Surplus: module.LimitCount}
 	userData, err := module.NewSession(w, r)
 	if err != nil {
 		log.Println("checkLogin", err)
@@ -51,7 +51,7 @@ func checkSession(w http.ResponseWriter, r *http.Request, permission int) {
 }
 
 func GetResult(w http.ResponseWriter, r *http.Request) *api.ReplyResult {
-	result := &api.ReplyResult{Status: module.StatusLogout}
+	result := &api.ReplyResult{Status: module.StatusLogout, ErrorCode: module.NoError, Surplus: module.LimitCount}
 	userData, err := module.NewSession(w, r)
 	if err == nil {
 		result.UserID, result.Status = userData.UserID()

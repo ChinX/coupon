@@ -11,7 +11,7 @@ import (
 func UserLogin(w http.ResponseWriter, r *http.Request) {
 	operation := "[UserLogin]"
 	auth := &api.UserLogin{}
-	result := &api.ReplyResult{Status: module.StatusLogout}
+	result := &api.ReplyResult{Status: module.StatusLogout, ErrorCode: module.NoError, Surplus: module.LimitCount}
 	err := readBody(r.Body, auth)
 	if err != nil {
 		result.Message = "请求参数错误"
@@ -67,7 +67,7 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 func UserBinding(w http.ResponseWriter, r *http.Request) {
 	operation := "UserBinding"
 	log.Println(operation, r.Header.Get("Cookie"))
-	result := &api.ReplyResult{Status: module.StatusLogout}
+	result := &api.ReplyResult{Status: module.StatusLogout, ErrorCode: module.NoError, Surplus: module.LimitCount}
 	userData, err := module.NewSession(w, r)
 	if err != nil {
 		log.Println(operation, err)

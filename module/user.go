@@ -100,7 +100,7 @@ func (s *Session) Binding(data *Binding) (*model.User, error) {
 			condition.Language != user.Language ||
 			condition.Nickname != user.Nickname {
 			err := mysql.Update(user, "id=?", user.ID)
-			if err != nil || err != mysql.NoRecords {
+			if err != nil && err != mysql.NoRecords {
 				return nil, errors.New("更新用户信息失败")
 			}
 		}

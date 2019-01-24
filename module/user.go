@@ -86,7 +86,7 @@ func (s *Session) Binding(data *Binding) (*model.User, error) {
 		return nil, err
 	}
 	userID, _ := s.store.Get(userIdKey)
-	user.ID = userID.(int64)
+	user.ID = int64(userID.(float64))
 
 	condition := &model.User{}
 	if err := mysql.Get(condition, "id=?", user.ID); err != nil {

@@ -8,8 +8,8 @@ type WXOfficial struct {
 	Nickname  string    `json:"nickname" xorm:"nickname varchar(64) notnull"`
 	AvatarURL string    `json:"avatar_url" xorm:"avatar_url varchar(255) notnull"`
 	QRCode    string    `json:"qr_code" xorm:"qr_code varchar(255) notnull"`
-	CreatedAt time.Time `json:"-"`
-	DeletedAt time.Time `json:"-"`
+	CreatedAt time.Time `json:"-" xorm:"created"`
+	DeletedAt time.Time `json:"-" xorm:"deleted"`
 }
 
 func (o *WXOfficial) TableName() string {

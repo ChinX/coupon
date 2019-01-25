@@ -14,8 +14,8 @@ type Activity struct {
 	Description    string    `json:"description" xorm:"description varchar(255)"`
 	PublicityIMG   string    `json:"publicity_img" xorm:"publicity_img varchar(255)"`
 	ShareIMG       string    `json:"share_img" xorm:"share_img varchar(255)"`
-	CreatedAt      time.Time `json:"-"`
-	DeletedAt      time.Time `json:"-"`
+	CreatedAt      time.Time `json:"-" xorm:"created"`
+	DeletedAt      time.Time `json:"-" xorm:"deleted"`
 	EndedAt        time.Time `json:"-" xorm:"ended"`
 	Price          int       `json:"price" xorm:"price notnull default 0"`
 	Final          int       `json:"final" xorm:"final notnull default 0"`

@@ -3,6 +3,7 @@ package handler
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/chinx/coupon/api"
 	"github.com/chinx/coupon/module"
@@ -13,7 +14,10 @@ func UserSession(w http.ResponseWriter, r *http.Request) {
 	log.Println()
 	log.Println(operation, "request url:", r.URL.String())
 	log.Println("Cookie:", r.Header.Get("Cookie"))
-
+	if strings.HasPrefix(r.URL.Path, "/v1/user/") && strings.HasSuffix(r.URL.Path, "/task") {
+		log.Println(r.URL.Path)
+		return
+	}
 	switch r.Method {
 	case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
 		checkSession(w, r, module.PermissionUser)

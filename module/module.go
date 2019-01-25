@@ -13,7 +13,9 @@ const (
 	min        = 1
 	Cardinal   = 100
 	TimeFormat = "2006年01月02日"
+)
 
+const(
 	TaskDoing = iota
 	TaskWaiting
 	TaskDone
@@ -115,6 +117,9 @@ func UserTask(selfID int64, userID int64, activityID int64) (map[string]interfac
 	var selfBargain *model.Bargain
 	err = mysql.Get(task, "user_id=? and activity_id=?", userID, activityID)
 	if err != nil {
+		if selfID == 0 {
+			return nil, errors.New("未登陆")
+		}
 		if selfID == userID {
 			task.UserID = userID
 			task.ActivityID = activityID

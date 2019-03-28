@@ -123,7 +123,7 @@ func UserTask(selfID int64, userID int64, activityID int64) (map[string]interfac
 		if selfID == userID {
 			task.UserID = userID
 			task.ActivityID = activityID
-			task.Message = "这里有一个好玩的地方，大家帮我们拿门票啊"
+			task.Message = "北京昌平首届山花节，快来一起砍价免费拿门票吧！"
 			task.Price = activity.Price
 			task.Final = activity.Final
 			task.Quantity = activity.Quantity
@@ -210,7 +210,7 @@ func CreateBargain(userID int64, taskID int64) (map[string]interface{}, int, int
 	l := len(list)
 	for i := 0; i < len(list) && l > LimitCount; i++ {
 		item := list[i].(*model.Bargain)
-		if mysql.Exist(&model.Task{}, "user_id=? and id=?", userID, item.TaskID) {
+		if item.CreatedAt.Before(dateTime) || mysql.Exist(&model.Task{}, "user_id=? and id=?", userID, item.TaskID) {
 			l--
 		}
 	}
@@ -251,6 +251,22 @@ func CreateBargain(userID int64, taskID int64) (map[string]interface{}, int, int
 		session.Rollback()
 		return nil, NoError, surplus, err
 	}
+
+	if task.Status == TaskWaiting{
+		activity := &model.Activity{}
+		session.Get(activity, "id=?", task.ActivityID)
+		if err != nil {
+			session.Rollback()
+			return nil, NoError, surplus, err
+		}
+		activity.Completed += 1
+		err = session.Update(activity, "id=?", task.ActivityID)
+		if err != nil {
+			session.Rollback()
+			return nil, NoError, surplus, err
+		}
+	}
+
 	err = session.Commit()
 	if err != nil {
 		return nil, NoError, surplus, err

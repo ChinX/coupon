@@ -119,7 +119,7 @@ func (s *Session) SetUserSession(wxData *WXSession) int {
 	}
 
 	user := &model.User{}
-	if err := mysql.Get(user, "id=?", wxData.ID); err != nil || user.Nickname == "" {
+	if err := mysql.Get(user, "id=?", wxData.ID); err != nil {
 		return StatusBinding
 	}
 	return StatusLogin

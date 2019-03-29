@@ -13,6 +13,7 @@ cert
 conf
 crypts
 static
+go.sum
 tools
 
 # Test binary, build with `go test -c`

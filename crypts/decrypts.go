@@ -120,6 +120,9 @@ func AesEncrypt(contentBytes []byte) ([]byte, error) {
 }
 
 func AesDecrypt(contentBytes []byte) ([]byte, error) {
+	if len(privateKey) == 0{
+		return contentBytes, nil
+	}
 	block, err := aes.NewCipher(privateKey)
 	if err != nil {
 		return nil, err

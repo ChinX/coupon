@@ -12,6 +12,7 @@ type User struct {
 	Province  string    `json:"province" xorm:"province varchar(40)"`
 	Country   string    `json:"country" xorm:"country varchar(40)"`
 	Language  string    `json:"language" xorm:"language varchar(20)"`
+	Binding   int       `json:"binding" xorm:"binding notnull default 0"`
 	CreatedAt time.Time `json:"-" xorm:"created"`
 }
 

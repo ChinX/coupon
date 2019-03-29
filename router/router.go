@@ -1,13 +1,12 @@
 package router
 
 import (
-	"net/http"
-
 	"github.com/chinx/cobweb"
 	"github.com/chinx/coupon/handler"
+	"github.com/urfave/negroni"
 )
 
-func InitRouter() (http.Handler, error) {
+func SetRouters(n *negroni.Negroni) error {
 	mux := cobweb.New()
 	mux.Get("/", handler.HomeHandler)
 	mux.Get("/S54107FZ3Q.txt", handler.VerificationHandler)
@@ -21,7 +20,7 @@ func InitRouter() (http.Handler, error) {
 		mux.Post("/task/:task_id/bargains", handler.CreateBargain)
 		mux.Get("/task/:task_id/bargains", handler.ListBargain)
 		mux.Post("/task/:task_id/cash", handler.CreateCash)
-	}, handler.UserSession)
+	})
 
 	mux.Group("/v1/source/", func() {
 		mux.Get("/*filename", handler.StaticHandler)
@@ -30,5 +29,12 @@ func InitRouter() (http.Handler, error) {
 	mux.Group("/editor", func() {
 		mux.Get("/*filename", handler.StaticHandler)
 	})
-	return mux.Build()
+
+	h, err := mux.Build()
+	if err != nil {
+		return err
+	}
+
+	n.UseHandler(h)
+	return nil
 }

@@ -13,7 +13,7 @@ import (
 
 var (
 	AppID     = "wx3f73a5186ad1702a"
-	AppSecret = "d11cf3f8b7ea0ee37100be01431e289a"
+	AppSecret = "3a30eacdb77a59ad4b281c1daee38e3d"
 	authURL   = "https://api.weixin.qq.com/sns/jscode2session"
 )
 
@@ -53,7 +53,7 @@ func (wx *WXAuth) AuthSession() (*WXSession, error) {
 
 	session := &WXSession{}
 	err = iorw.ReadJSON(resp.Body, session)
-	if err != nil {
+	if err != nil || session.OpenID == "" || session.SessionKey == ""{
 		return nil, fmt.Errorf("parse jsom body error: %s", err)
 	}
 

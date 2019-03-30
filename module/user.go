@@ -12,7 +12,6 @@ import (
 	"net/http"
 
 	"github.com/chinx/coupon/model"
-
 	"github.com/chinx/coupon/dao/mysql"
 	"github.com/go-session/session"
 )
@@ -73,10 +72,10 @@ func (s *Session) ValidateSignature(sign string, raw string) (int, error) {
 	}
 
 	if sign != signature(raw+key.(string)) {
-		return StatusLogin, errors.New("请求参数不合法")
+		return StatusBinding, errors.New("请求参数不合法")
 	}
 
-	return StatusLogin, nil
+	return StatusBinding, nil
 }
 
 func (s *Session) Binding(data *Binding) (*model.User, error) {
@@ -85,11 +84,14 @@ func (s *Session) Binding(data *Binding) (*model.User, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Println(*user)
 	userID, _ := s.store.Get(userIdKey)
 	user.ID = int64(userID.(float64))
+	user.Binding = 1
 
 	condition := &model.User{}
 	if err := mysql.Get(condition, "id=?", user.ID); err != nil {
+		log.Println(err)
 		return nil, errors.New("绑定用户信息失败")
 	} else {
 		if condition.AvatarURL != user.AvatarURL ||
@@ -98,7 +100,8 @@ func (s *Session) Binding(data *Binding) (*model.User, error) {
 			condition.Country != user.Country ||
 			condition.Gender != user.Gender ||
 			condition.Language != user.Language ||
-			condition.Nickname != user.Nickname {
+			condition.Nickname != user.Nickname ||
+			condition.Binding != user.Binding{
 			err := mysql.Update(user, "id=?", user.ID)
 			if err != nil && err != mysql.NoRecords {
 				return nil, errors.New("更新用户信息失败")
@@ -119,7 +122,7 @@ func (s *Session) SetUserSession(wxData *WXSession) int {
 	}
 
 	user := &model.User{}
-	if err := mysql.Get(user, "id=?", wxData.ID); err != nil {
+	if err := mysql.Get(user, "id=?", wxData.ID); err != nil || user.Binding == 0{
 		return StatusBinding
 	}
 	return StatusLogin

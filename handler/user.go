@@ -43,7 +43,6 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		userData.Refresh(w, r)
 	}
 
-	userData.ShowALL()
 	result.UserID = wxData.ID
 	result.Status = userData.SetUserSession(wxData)
 	if result.Status == module.StatusLogout {
@@ -53,6 +52,7 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userData.ShowALL()
 	if result.Status == module.StatusLogin {
 		user, ok := module.GetUserInfo(result.UserID)
 		log.Println(operation, user, ok)
@@ -88,8 +88,7 @@ func UserBinding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println(operation, *bind)
-	status, err := userData.ValidateSignature(bind.Signature, bind.RawData)
-	result.Status = status
+	result.Status, err = userData.ValidateSignature(bind.Signature, bind.RawData)
 	if err != nil {
 		log.Println(operation, err)
 		result.Message = err.Error()

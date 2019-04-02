@@ -123,7 +123,8 @@ func UserTask(selfID int64, userID int64, activityID int64) (map[string]interfac
 		if selfID == userID {
 			task.UserID = userID
 			task.ActivityID = activityID
-			task.Message = "北京昌平首届山花节，快来一起砍价免费拿门票吧！"
+
+			task.Message = "吃喝享乐来这玩，免费门票随便砍！"
 			task.Price = activity.Price
 			task.Final = activity.Final
 			task.Quantity = activity.Quantity

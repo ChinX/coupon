@@ -12,6 +12,12 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "http://www.windup.cn", http.StatusMovedPermanently)
 }
 
+func RuntimeConfig(w http.ResponseWriter, r *http.Request) {
+	result := GetResult(w, r)
+	result.Data = []byte("{}")
+	reply(w, http.StatusOK, result, nil)
+}
+
 func VerificationHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("2efb1213bd8a6bd6049be787f2480189"))

@@ -13,6 +13,7 @@ func SetRouters(n *negroni.Negroni) error {
 
 	mux.Post("/v1/user/login", handler.UserLogin)
 	mux.Group("/v1", func() {
+		mux.Get("/config", handler.RuntimeConfig)
 		mux.Post("/user/binding", handler.UserBinding)
 
 		mux.Get("/activities", handler.ListActivities)
